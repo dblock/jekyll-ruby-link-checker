@@ -144,6 +144,40 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     expect(File).to exist(cache)
   end
 
+  it 'writes a Markdown report of dead links to LINK_CHECKER_REPORT' do
+    report = File.join(dir, 'reports', 'links.md')
+
+    expect do
+      build({ 'index.md' => page('[Missing](/missing/) <a href="https://dead.example.org/a|b">Dead</a>') },
+            env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+    end.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+
+    expect(File.read(report)).to eq(<<~MARKDOWN)
+      <!-- jekyll-ruby-link-checker dead links: 2 -->
+
+      Checked 1 internal and 1 external links (0 cached), skipped 0.
+
+      | Link | Reason | Linked From |
+      | --- | --- | --- |
+      | /missing/ | page not found | index.md |
+      | https://dead.example.org/a\\|b | bad URI (is not URI?): "https://dead.example.org/a\\|b" | index.md |
+    MARKDOWN
+  end
+
+  it 'writes a report without dead links, and none unless LINK_CHECKER_REPORT is set' do
+    report = File.join(dir, 'links.md')
+    files = { 'index.md' => page('[About](/about/)'), 'about.md' => about }
+
+    build(files)
+    expect(File).not_to exist(report)
+
+    build(files, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+    expect(File.read(report)).to eq(
+      "<!-- jekyll-ruby-link-checker dead links: 0 -->\n\n" \
+      "Checked 1 internal and 0 external links (0 cached), skipped 0.\n\nNo dead links.\n"
+    )
+  end
+
   it 'sends the configured user agent' do
     Typhoeus.stub('https://ok.example.org/') do |request|
       Typhoeus::Response.new(code: request.options[:headers]['User-Agent'] == 'Test Checker' ? 200 : 403)

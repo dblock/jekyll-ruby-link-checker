@@ -11,6 +11,9 @@ permissions:
 jobs:
   check-links:
     uses: ./.github/workflows/check-links.yml
+    permissions:
+      contents: read
+      issues: write
     with:
       ruby-version: '4.0'
       working-directory: spec/fixtures/site
@@ -18,3 +21,6 @@ jobs:
       setup-command: touch .setup-done
       build-command: test -f .setup-done && bundle exec jekyll build
       cache-key-prefix: integration-link-checker-
+      # The fixture has no dead links, so this checks for an open issue and changes nothing.
+      issue: true
+      issue-title: Integration Broken Links

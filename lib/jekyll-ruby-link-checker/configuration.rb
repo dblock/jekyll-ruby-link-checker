@@ -76,6 +76,21 @@ module Jekyll
         @verbose
       end
 
+      # LINK_CHECKER_CACHE overrides the configured cache file, for example in a CI workflow.
+      def cache_options(source)
+        file = ENV.fetch('LINK_CHECKER_CACHE', '').strip
+        file = @cache.file.to_s if file.empty?
+        return nil if file.empty?
+
+        { file: File.expand_path(file, source), ttl: @cache.ttl }
+      end
+
+      # LINK_CHECKER_REPORT names a file for a Markdown report, for example in a CI workflow.
+      def report_file(source)
+        file = ENV.fetch('LINK_CHECKER_REPORT', '').strip
+        file.empty? ? nil : File.expand_path(file, source)
+      end
+
       private
 
       def read(raw)

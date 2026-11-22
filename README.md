@@ -76,7 +76,7 @@ link_checker:
 | `user_agent`      | ruby-link-checker's | User agent sent with external checks.                                                                                   |
 | `verbose`         | `false`             | Log every link and its result, and ruby-link-checker's requests.                                                        |
 
-Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, for example in CI.
+Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, and `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI.
 
 ## Reusable Workflow
 
@@ -94,12 +94,13 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   check-links:
     uses: dblock/jekyll-ruby-link-checker/.github/workflows/check-links.yml@v0.1.0
     with:
-      setup-command: sudo apt-get update && sudo apt-get install -y libvips-tools
+      issue: true
 ```
 
 | Input               | Default                    | Description                                                                                                          |
@@ -111,8 +112,16 @@ jobs:
 | `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                        |
 | `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
 | `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
+| `issue`             | `false`                    | Keep an open issue with the dead links up to date, and close it when all links work.                                 |
+| `issue-title`       | `Broken Links`             | Title of the issue.                                                                                                  |
 
-GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache. To act on a failure, such as opening an issue, add a job that `needs: check-links` with `if: failure()`.
+The workflow inherits the caller's permissions: grant `contents: read`, and also `issues: write` with `issue: true`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
+
+### Publishing Results
+
+Every run adds a report to its job summary: the summary line, and a table of dead links with the reason and the pages that link to each.
+
+With `issue: true`, the workflow also keeps one open issue, titled `issue-title`, up to date. A run with dead links opens the issue, or replaces the body of the open one, with the report and a link to the run. A run without dead links closes the open issue with a comment. A build that fails before checking links, for example while installing gems, leaves the issue unchanged. To act on a failure in another way, add a job that `needs: check-links` with `if: failure()`.
 
 ## Contributing
 

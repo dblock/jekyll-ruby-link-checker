@@ -35,7 +35,7 @@ module Jekyll
         @site = site
         @config = Configuration.new(site.config['link_checker'])
         @urls = Urls.new(site, @config.exclude)
-        @report = Report.new(verbose: @config.verbose?)
+        @report = Report.new(verbose: @config.verbose?, file: @config.report_file(site.source))
         @links = Hash.new { |hash, url| hash[url] = Set.new }
       end
 
@@ -119,19 +119,10 @@ module Jekyll
           logger: @config.verbose? ? Jekyll.logger : Logger.new(IO::NULL),
           hydra: { max_concurrency: @config.concurrency },
           retries: @config.retries,
-          cache: cache_options
+          cache: @config.cache_options(@site.source)
         }
         options[:user_agent] = @config.user_agent if @config.user_agent
         options
-      end
-
-      # LINK_CHECKER_CACHE overrides the configured cache file, for example in a CI workflow.
-      def cache_options
-        file = ENV.fetch('LINK_CHECKER_CACHE', '').strip
-        file = @config.cache.file.to_s if file.empty?
-        return nil if file.empty?
-
-        { file: File.expand_path(file, @site.source), ttl: @config.cache.ttl }
       end
     end
   end

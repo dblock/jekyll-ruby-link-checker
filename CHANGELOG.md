@@ -15,4 +15,5 @@
 - [#16](https://github.com/dblock/jekyll-ruby-link-checker/pull/16): Add the `blocked`, `detect_challenges`, `timeout`, `connect_timeout`, `host_concurrency`, `host_interval`, `headers`, and `host_headers` options - [@dblock](https://github.com/dblock).
 - [#18](https://github.com/dblock/jekyll-ruby-link-checker/pull/18): Add the `cache.blocked_ttl` and `cache.prune` options - [@dblock](https://github.com/dblock).
 - [#19](https://github.com/dblock/jekyll-ruby-link-checker/pull/19): Add the `permanent_redirects` option to report links that moved permanently, with the URL to update them to - [@dblock](https://github.com/dblock).
+- [#20](https://github.com/dblock/jekyll-ruby-link-checker/pull/20): Keep the existing cache of a site at the repository root when switching to the reusable workflow, by caching the bare `cache-file` path - [@dblock](https://github.com/dblock).
 - Your contribution here.

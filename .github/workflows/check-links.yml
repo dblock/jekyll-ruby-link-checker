@@ -59,6 +59,12 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
+    env:
+      # GitHub versions caches by path, so a site at the root uses the bare cache file, as a workflow that restores and
+      # saves `.cache/link-checker.json` does, rather than `./.cache/link-checker.json`, and keeps its existing cache.
+      CACHE_PATH: >-
+        ${{ (inputs.working-directory == '.' || inputs.working-directory == '') && inputs.cache-file
+        || format('{0}/{1}', inputs.working-directory, inputs.cache-file) }}
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -96,7 +102,7 @@ jobs:
     - name: Restore Link Checker Cache
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: ${{ inputs.working-directory }}/${{ inputs.cache-file }}
+        path: ${{ env.CACHE_PATH }}
         key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: ${{ inputs.cache-key-prefix }}
     # For a pull request, the artifact also records its number for publish-report.yml, because
@@ -138,8 +144,8 @@ jobs:
     # GitHub caches can't be overwritten, so every run saves a new key and the next run restores the newest.
     # Save even when dead links fail the build: the cache is written as each check succeeds.
     - name: Save Link Checker Cache
-      if: always() && hashFiles(format('{0}/{1}', inputs.working-directory, inputs.cache-file)) != ''
+      if: always() && hashFiles(env.CACHE_PATH) != ''
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: ${{ inputs.working-directory }}/${{ inputs.cache-file }}
+        path: ${{ env.CACHE_PATH }}
         key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}

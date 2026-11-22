@@ -18,6 +18,7 @@ PRs
 rebase
 RuboCop
 RubyGems
+ruleset
 SHA
 txt
 Typhoeus

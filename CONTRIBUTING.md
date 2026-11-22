@@ -52,4 +52,4 @@ actionlint .github/workflows/*.yml
 - Update the documentation the change affects, and add a line to [CHANGELOG.md](CHANGELOG.md) for features, improvements, and fixes, in the form `- [#123](https://github.com/dblock/jekyll-ruby-link-checker/pull/123): Description - [@author](https://github.com/author).`
 - After a PR merges, confirm it merged, remove its clean worktree if any, and delete the local branch.
 
-See [RELEASING.md](RELEASING.md) for releases.
+See [RELEASING.md](RELEASING.md) for releases. The Release workflow pushes release and next development commits directly to `master`; ordinary changes still go through pull requests.

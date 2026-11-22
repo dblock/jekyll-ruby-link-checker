@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 
 gemspec
 
+gem 'commonmarker', '~> 2.10', require: false
 gem 'danger', require: false
 gem 'danger-changelog', require: false
 gem 'danger-pr-comment', require: false
@@ -16,5 +17,6 @@ gem 'rubocop-rake', require: false
 gem 'rubocop-rspec', require: false
 gem 'rubocop-spellcheck', require: false
 gem 'rubocop-yaml', require: false
+gem 'ruby-gem-release', '~> 0.9', require: false
 gem 'simplecov', require: false
 gem 'simplecov-lcov', require: false

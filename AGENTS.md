@@ -17,6 +17,6 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, commands, tests, and PR rules
 
 ## Safety
 
-- Do not merge, publish, or create release tags without authorization.
+- Do not merge, publish, dispatch the Release workflow, or create release tags without authorization. Releases run only through the Release workflow, as described in [RELEASING.md](RELEASING.md); the local Bundler release tasks are disabled.
 - Never force-push `master`.
 - Preserve unrelated worktree changes, and never discard changes to clean up.

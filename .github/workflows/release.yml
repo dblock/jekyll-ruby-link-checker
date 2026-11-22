@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional release version overriding the checked-in version.
+        type: string
+        required: false
+      rubygems-owner:
+        description: RubyGems account ID for the first publication; omit for an existing gem.
+        type: string
+        required: false
+      dry-run:
+        description: Only check prerequisites, without editing, pushing, or publishing anything.
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    uses: dblock/ruby-gem-release/.github/workflows/release.yml@fc9b2673899047f7cb021e4c7f6528d819d06f77 # v0.9.0
+    with:
+      ruby-version: '4.0'
+      version: ${{ inputs.version }}
+      rubygems-owner: ${{ inputs.rubygems-owner }}
+      dry-run: ${{ inputs.dry-run }}

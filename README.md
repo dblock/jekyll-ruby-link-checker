@@ -78,56 +78,93 @@ link_checker:
 
 Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, and `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI.
 
-## Reusable Workflow
+## Reusable Workflows
 
-The [check-links](.github/workflows/check-links.yml) workflow builds your site with `LINK_CHECKER=1` and keeps the cache between runs, so each run only checks links that failed or weren't checked successfully within the cache's `ttl`. It restores the newest saved cache, and saves the cache even when dead links fail the build. Pin it to a release tag or commit:
+Two reusable workflows check links in GitHub Actions and publish the results. They're separate so that checking runs with read-only permissions, including on pull requests from forks, and publishing runs from your default branch with permission to comment, without running the checked code. Pin both to a release tag or commit.
+
+### Checking Links
+
+The [check-links](.github/workflows/check-links.yml) workflow builds your site with `LINK_CHECKER=1` and keeps the cache between runs, so each run only checks links that failed or weren't checked successfully within the cache's `ttl`. It restores the newest saved cache, and saves the cache even when dead links fail the build. Pull requests can restore the cache saved by the default branch.
 
 ```yaml
+# .github/workflows/check-links.yml
 name: Check Links
 
 on:
   push:
     branches: [main]
+  pull_request:
   schedule:
     - cron: '30 11 * * 0,3'
   workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   check-links:
     uses: dblock/jekyll-ruby-link-checker/.github/workflows/check-links.yml@v0.1.0
+```
+
+| Input               | Default                    | Description                                                                                                          |
+| ---                 | ---                        | ---                                                                                                                  |
+| `runs-on`           | `ubuntu-latest`            | Runner label, or a JSON list of labels.                                                                              |
+| `ruby-version`      | `default`                  | Ruby version, or `default` to read `.ruby-version`.                                                                  |
+| `working-directory` | `.`                        | Directory of the site.                                                                                               |
+| `setup-command`     | none                       | Shell command to run in the site directory before installing Ruby and gems, for example to install system libraries. |
+| `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                        |
+| `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
+| `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
+| `report-artifact`   | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
+
+The workflow inherits the caller's permissions and only needs `contents: read`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
+
+Every run adds a report to its job summary, and attaches it to the run as the `link-checker-report` artifact: `link-checker-report.md`, with the summary line and a table of dead links with the reason and the pages that link to each, and, for a pull request, `link-checker-pr.txt`, with its number. Download it from the run page, or with `gh run download <run id> --name link-checker-report`. Set `report-artifact: 'false'` to skip uploading it; quote `'false'`, because inputs of reusable workflows must match their declared type, and `report-artifact` is a string.
+
+### Publishing Results
+
+The [publish-report](.github/workflows/publish-report.yml) workflow publishes the report of a completed run. Call it from a workflow that runs when the check completes; `workflow_run` workflows run from your default branch, with the permissions you grant them, even for pull requests from forks:
+
+```yaml
+# .github/workflows/publish-link-checker-report.yml
+name: Publish Link Checker Report
+
+on:
+  workflow_run:
+    workflows: [Check Links]
+    types: [completed]
+
+permissions:
+  actions: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  publish:
+    uses: dblock/jekyll-ruby-link-checker/.github/workflows/publish-report.yml@v0.1.0
     with:
       issue: 'true'
 ```
 
-| Input               | Default                    | Description                                                                                                                                              |
-| ---                 | ---                        | ---                                                                                                                                                      |
-| `runs-on`           | `ubuntu-latest`            | Runner label, or a JSON list of labels.                                                                                                                  |
-| `ruby-version`      | `default`                  | Ruby version, or `default` to read `.ruby-version`.                                                                                                      |
-| `working-directory` | `.`                        | Directory of the site.                                                                                                                                   |
-| `setup-command`     | none                       | Shell command to run in the site directory before installing Ruby and gems, for example to install system libraries.                                     |
-| `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                                                            |
-| `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                                                              |
-| `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                                                                 |
-| `report-artifact`   | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                                                               |
-| `issue`             | `'false'`                  | `'true'` keeps an issue titled `Broken Links` up to date, another value is the title of the issue, and a number, such as `'123'`, is an issue by number. |
+| Input             | Default                                | Description                                                                                                                                                                     |
+| ---               | ---                                    | ---                                                                                                                                                                             |
+| `runs-on`         | `ubuntu-latest`                        | Runner label, or a JSON list of labels.                                                                                                                                         |
+| `run-id`          | the run that triggered it, or this run | Run that uploaded the report.                                                                                                                                                   |
+| `report-artifact` | `link-checker-report`                  | Name of the artifact that holds the report.                                                                                                                                     |
+| `comment`         | `true`                                 | Keep a comment with the report up to date on pull requests.                                                                                                                     |
+| `issue`           | `'false'`                              | On the default branch, `'true'` keeps an issue titled `Broken Links` up to date, another value is the title of the issue, and a number, such as `'123'`, is an issue by number. |
 
-The workflow inherits the caller's permissions: grant `contents: read`, and also `issues: write` with `issue`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
+It needs `actions: read` to download the report, `pull-requests: write` to comment, and `issues: write` for the issue. It never checks out or runs the checked code, and treats the report as data.
 
-### Publishing Results
+On a pull request, it comments with the report once there are dead links, and keeps that comment up to date on later runs, including when the links are fixed. It only comments when the pull request is still at the checked commit, so a report can't be posted on another pull request.
 
-Every run adds a report to its job summary, and attaches it to the run as the `link-checker-report` artifact, a `link-checker-report.md` file: the summary line, and a table of dead links with the reason and the pages that link to each. Download it from the run page, or with `gh run download <run id> --name link-checker-report`. Set `report-artifact: 'false'` to skip uploading it; quote `'false'`, because inputs of reusable workflows must match their declared type, and `report-artifact` is a string.
-
-With `issue`, the workflow also keeps an issue up to date:
+On the default branch, with `issue`, it keeps an issue up to date:
 
 - `issue: 'true'` uses an issue titled `Broken Links`,
 - `issue: Dead Links on the Blog` uses an issue with that title,
 - `issue: '123'` uses issue 123.
 
-A run with dead links replaces the body of the issue with the report and a link to the run: an issue found by title is opened when there is no open issue with that title, and an issue given by number is reopened when it's closed. A run without dead links closes the issue with a comment. `issue` is a string, so quote `'true'`, `'false'`, and numbers: inputs of reusable workflows must match their declared type. A build that fails before checking links, for example while installing gems, leaves the issue unchanged. To act on a failure in another way, add a job that `needs: check-links` with `if: failure()`.
+A run with dead links replaces the body of the issue with the report and a link to the run: an issue found by title is opened when there is no open issue with that title, and an issue given by number is reopened when it's closed. A run without dead links closes the issue with a comment. `issue` is a string, so quote `'true'`, `'false'`, and numbers. A build that fails before checking links, for example while installing gems, uploads no report and leaves the comment and the issue unchanged.
 
 ## Contributing
 

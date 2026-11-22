@@ -51,6 +51,7 @@ Naming/FileName:
     - 'lib/jekyll-ruby-link-checker.rb'
     - '.github/workflows/danger-comment.yml'
     - '.github/workflows/check-links.yml'
+    - '.github/workflows/publish-report.yml'
 
 # Reusable workflow references are pinned to a full commit SHA on one line.
 Layout/LineLength:

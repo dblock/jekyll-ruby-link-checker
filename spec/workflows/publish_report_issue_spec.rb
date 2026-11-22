@@ -4,14 +4,14 @@ require 'open3'
 require 'yaml'
 
 # Runs the "Update Issue" step of the reusable workflow with a fake `gh` that records its arguments.
-RSpec.describe 'check-links workflow issue step' do # rubocop:disable RSpec/DescribeClass
+RSpec.describe 'publish-report workflow issue step' do # rubocop:disable RSpec/DescribeClass
   let(:dir) { Dir.mktmpdir }
   let(:report) { File.join(dir, 'report.md') }
   let(:log) { File.join(dir, 'gh.log') }
   let(:run_url) { 'https://github.com/o/r/actions/runs/1' }
   let(:script) do
-    workflow = YAML.safe_load_file(File.expand_path('../../.github/workflows/check-links.yml', __dir__))
-    workflow.dig('jobs', 'check', 'steps').find { |step| step['name'] == 'Update Issue' }.fetch('run')
+    workflow = YAML.safe_load_file(File.expand_path('../../.github/workflows/publish-report.yml', __dir__))
+    workflow.dig('jobs', 'publish', 'steps').find { |step| step['name'] == 'Update Issue' }.fetch('run')
   end
 
   before do
@@ -120,11 +120,11 @@ RSpec.describe 'check-links workflow issue step' do # rubocop:disable RSpec/Desc
     expect(run_step(issue: '123', issue_state: 'OPEN')).to be_empty
   end
 
-  it 'runs only when issue is set to something other than false' do
-    workflow = YAML.safe_load_file(File.expand_path('../../.github/workflows/check-links.yml', __dir__))
-    step = workflow.dig('jobs', 'check', 'steps').find { |s| s['name'] == 'Update Issue' }
+  it 'runs only when issue is set to something other than false, outside pull requests, on the default branch' do
+    workflow = YAML.safe_load_file(File.expand_path('../../.github/workflows/publish-report.yml', __dir__))
+    step = workflow.dig('jobs', 'publish', 'steps').find { |s| s['name'] == 'Update Issue' }
 
-    expect(step['if']).to eq("always() && inputs.issue != 'false' && inputs.issue != ''")
+    expect(step['if']).to include("inputs.issue != 'false' && inputs.issue != ''", '!contains(', 'default_branch')
     expect(workflow.dig(true, 'workflow_call', 'inputs', 'issue')).to include('type' => 'string', 'default' => 'false')
   end
 end

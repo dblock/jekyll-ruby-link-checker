@@ -35,14 +35,9 @@ on:
         description: Name of the artifact that holds the Markdown report of each run, or `false` to skip uploading it.
         type: string
         default: link-checker-report
-      issue:
-        description: >-
-          Keep an issue with the dead links up to date: `false` for none, `true` for an issue titled
-          `Broken Links`, another title, or an issue number such as `123`.
-        type: string
-        default: 'false'
 
-# Jobs inherit the caller's permissions: `contents: read`, and `issues: write` with `issue: true`.
+# Jobs inherit the caller's permissions; this workflow only needs `contents: read`, so it can run on pull requests
+# from forks. Publish the report to a pull request comment or an issue with publish-report.yml.
 
 jobs:
   check:
@@ -71,9 +66,18 @@ jobs:
         path: ${{ inputs.working-directory }}/${{ inputs.cache-file }}
         key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: ${{ inputs.cache-key-prefix }}
+    # For a pull request, the artifact also records its number for publish-report.yml, because
+    # `workflow_run` events from forks don't include it.
+    - name: Record Pull Request
+      if: github.event.pull_request.number != ''
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/link-checker"
+        echo "$PR_NUMBER" > "$RUNNER_TEMP/link-checker/link-checker-pr.txt"
     - name: Build and Check Links
       env:
-        LINK_CHECKER_REPORT: ${{ runner.temp }}/link-checker-report.md
+        LINK_CHECKER_REPORT: ${{ runner.temp }}/link-checker/link-checker-report.md
         BUILD_COMMAND: ${{ inputs.build-command }}
         LINK_CHECKER: '1'
         LINK_CHECKER_CACHE: ${{ github.workspace }}/${{ inputs.working-directory }}/${{ inputs.cache-file }}
@@ -81,7 +85,7 @@ jobs:
     - name: Write Job Summary
       if: always()
       env:
-        REPORT: ${{ runner.temp }}/link-checker-report.md
+        REPORT: ${{ runner.temp }}/link-checker/link-checker-report.md
       run: |
         if [ -f "$REPORT" ]; then
           cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
@@ -91,58 +95,8 @@ jobs:
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: ${{ inputs.report-artifact }}
-        path: ${{ runner.temp }}/link-checker-report.md
+        path: ${{ runner.temp }}/link-checker/
         if-no-files-found: ignore
-    - name: Update Issue
-      if: always() && inputs.issue != 'false' && inputs.issue != ''
-      env:
-        GH_TOKEN: ${{ github.token }}
-        GH_REPO: ${{ github.repository }}
-        REPORT: ${{ runner.temp }}/link-checker-report.md
-        ISSUE: ${{ inputs.issue }}
-        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      run: |
-        set -euo pipefail
-        if [ ! -f "$REPORT" ]; then
-          echo "No link checker report, so the build failed before checking links; leaving the issue unchanged."
-          exit 0
-        fi
-        dead=$(sed -n 's/^<!-- jekyll-ruby-link-checker dead links: \([0-9]*\) -->$/\1/p' "$REPORT" | head -n 1)
-        # `true` uses the default title, a number names an issue, and anything else is a title.
-        if [ "$(printf '%s' "$ISSUE" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
-          ISSUE="Broken Links"
-        fi
-        number=""
-        state=""
-        title=""
-        if printf '%s' "$ISSUE" | grep -Eq '^#?[0-9]+$'; then
-          number="${ISSUE#\#}"
-          state=$(gh issue view "$number" --json state --jq .state)
-        else
-          title="$ISSUE"
-          number=$(TITLE="$title" gh issue list --state open --search "\"$title\" in:title" --json number,title \
-            --jq 'map(select(.title == env.TITLE)) | .[0].number // empty')
-          if [ -n "$number" ]; then
-            state=OPEN
-          fi
-        fi
-        if [ "${dead:-0}" -gt 0 ]; then
-          body="$(cat "$REPORT")"$'\n\n'"From $RUN_URL."
-          # Issue bodies are limited to 65,536 characters.
-          if [ "${#body}" -gt 65000 ]; then
-            body="${body:0:65000}"$'\n\n'"The report is truncated; see the job summary of $RUN_URL."
-          fi
-          if [ -z "$number" ]; then
-            gh issue create --title "$title" --body "$body"
-          else
-            gh issue edit "$number" --body "$body"
-            if [ "$state" = "CLOSED" ]; then
-              gh issue reopen "$number"
-            fi
-          fi
-        elif [ "$state" = "OPEN" ]; then
-          gh issue close "$number" --comment "All links work, as of $RUN_URL."
-        fi
     # GitHub caches can't be overwritten, so every run saves a new key and the next run restores the newest.
     # Save even when dead links fail the build: the cache is written as each check succeeds.
     - name: Save Link Checker Cache

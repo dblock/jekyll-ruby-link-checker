@@ -13,7 +13,6 @@ jobs:
     uses: ./.github/workflows/check-links.yml
     permissions:
       contents: read
-      issues: write
     with:
       ruby-version: '4.0'
       working-directory: spec/fixtures/site
@@ -21,8 +20,6 @@ jobs:
       setup-command: touch .setup-done
       build-command: test -f .setup-done && bundle exec jekyll build
       cache-key-prefix: integration-link-checker-
-      # The fixture has no dead links, so this checks for an open issue with this title and changes nothing.
-      issue: Integration Broken Links
 
   # A second upload under the same name would fail, so this also checks that `false` skips the upload.
   check-links-without-report:
@@ -34,6 +31,18 @@ jobs:
       working-directory: spec/fixtures/site
       cache-key-prefix: integration-link-checker-
       report-artifact: 'false'
+
+  # Publishes the report of this run: on a pull request, the fixture has no dead links and no comment exists, so
+  # this checks the pull request and its comments and changes nothing; on master, it checks for an open issue.
+  publish:
+    needs: check-links
+    uses: ./.github/workflows/publish-report.yml
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+    with:
+      issue: Integration Broken Links
 
   report:
     name: Check Report Artifact

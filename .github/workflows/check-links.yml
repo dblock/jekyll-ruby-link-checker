@@ -45,8 +45,9 @@ on:
         description: >-
           On pull requests, only check pages whose source changed, or all pages when a layout, an include, data,
           configuration, or another file that isn't a page or a static file changed, or a file was deleted or renamed.
+          Other runs always check all pages.
         type: boolean
-        default: false
+        default: true
 
 # Jobs inherit the caller's permissions; this workflow only needs `contents: read`, so it can run on pull requests
 # from forks. Publish the report to a pull request comment or an issue with publish-report.yml.

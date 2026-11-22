@@ -89,7 +89,11 @@ RSpec.describe 'check-links workflow changed files step' do # rubocop:disable RS
     expect(run_step).to eq(["HEAD isn't a pull request merge commit; checking all pages.\n", nil])
   end
 
-  it 'runs only on pull requests with changed-files-only' do
+  it 'runs only on pull requests with changed-files-only, which is on by default' do
+    workflow = YAML.safe_load_file(File.expand_path('../../.github/workflows/check-links.yml', __dir__))
+
     expect(step['if']).to eq("inputs.changed-files-only && github.event_name == 'pull_request'")
+    expect(workflow.dig(true, 'workflow_call', 'inputs',
+                        'changed-files-only')).to include('type' => 'boolean', 'default' => true)
   end
 end

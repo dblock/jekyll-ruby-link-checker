@@ -20,10 +20,10 @@ jobs:
       setup-command: touch .setup-done
       build-command: test -f .setup-done && bundle exec jekyll build
       cache-key-prefix: integration-link-checker-
-      changed-files-only: true
 
   # A second upload under the same name would fail, so this also checks that `false` skips the upload.
-  # Also adds a dead link, which only warns with `fail-on-dead-links: false`.
+  # Also adds a dead link, which only warns with `fail-on-dead-links: false`, to a page that the pull request
+  # doesn't change, so it checks all pages.
   check-links-without-report:
     uses: ./.github/workflows/check-links.yml
     permissions:
@@ -35,6 +35,7 @@ jobs:
       cache-key-prefix: integration-link-checker-
       report-artifact: 'false'
       fail-on-dead-links: false
+      changed-files-only: false
 
   # Publishes the report of this run: on a pull request, the fixture has no dead links and no comment exists, so
   # this checks the pull request and its comments and changes nothing; on master, it checks for an open issue.

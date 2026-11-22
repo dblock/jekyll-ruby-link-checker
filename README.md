@@ -116,7 +116,7 @@ jobs:
 | `cache-file`         | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
 | `cache-key-prefix`   | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
 | `report-artifact`    | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
-| `changed-files-only` | `false`                    | On pull requests, only check pages whose source changed.                                                             |
+| `changed-files-only` | `true`                     | On pull requests, only check pages whose source changed; `false` checks all pages.                                   |
 | `fail-on-dead-links` | `true`                     | Fail the check on dead links; with `false`, dead links are reported with a warning and the check passes.             |
 
 To report dead links on pull requests without failing them, for example while the default branch has dead links of its own, pass an expression; `fail-on-dead-links` is a boolean, so it takes `true`, `false`, or an expression:
@@ -126,7 +126,7 @@ To report dead links on pull requests without failing them, for example while th
       fail-on-dead-links: ${{ github.event_name != 'pull_request' }}
 ```
 
-With `changed-files-only: true`, pull requests only check the pages and documents they change, so a pull request that adds a post checks that post's links rather than the whole site. Changed static files, such as images, need no check. A pull request that changes anything else in the site, such as a layout, an include, data, `_config.yml`, or the `Gemfile`, or that deletes or renames a file, which other pages may link to, checks all pages. Other runs always check all pages.
+By default, with `changed-files-only: true`, pull requests only check the pages and documents they change, so a pull request that adds a post checks that post's links rather than the whole site. Changed static files, such as images, need no check. A pull request that changes anything else in the site, such as a layout, an include, data, `_config.yml`, or the `Gemfile`, or that deletes or renames a file, which other pages may link to, checks all pages. Other runs, such as pushes and scheduled runs, always check all pages. Set `changed-files-only: false` to check all pages on pull requests too.
 
 The workflow inherits the caller's permissions and only needs `contents: read`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
 

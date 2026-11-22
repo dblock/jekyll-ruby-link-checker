@@ -1,0 +1,11 @@
+title: Link Checker Fixture
+url: https://www.example.com
+plugins:
+  - jekyll-ruby-link-checker
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+link_checker:
+  cache:
+    ttl: 30d

@@ -1,0 +1,78 @@
+name: Check Links
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner label, such as `ubuntu-latest`, or a JSON list, such as `["self-hosted", "linux"]`.
+        type: string
+        default: ubuntu-latest
+      ruby-version:
+        description: Ruby version to install, or `default` to read `.ruby-version` from the site.
+        type: string
+        default: default
+      working-directory:
+        description: Directory of the Jekyll site, relative to the repository root.
+        type: string
+        default: .
+      setup-command:
+        description: Shell command to run in the site directory before installing Ruby, such as installing libraries.
+        type: string
+        default: ''
+      build-command:
+        description: Command that builds the site.
+        type: string
+        default: bundle exec jekyll build
+      cache-file:
+        description: Link checker cache file, relative to the site directory.
+        type: string
+        default: .cache/link-checker.json
+      cache-key-prefix:
+        description: Prefix of the GitHub Actions cache keys that hold the link checker cache.
+        type: string
+        default: link-checker-
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check Links
+    runs-on: ${{ startsWith(inputs.runs-on, '[') && fromJSON(inputs.runs-on) || inputs.runs-on }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Run Setup Command
+      if: inputs.setup-command != ''
+      env:
+        SETUP_COMMAND: ${{ inputs.setup-command }}
+      run: eval "$SETUP_COMMAND"
+    - uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
+      with:
+        ruby-version: ${{ inputs.ruby-version }}
+        working-directory: ${{ inputs.working-directory }}
+        bundler-cache: true
+    - name: Restore Link Checker Cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ inputs.working-directory }}/${{ inputs.cache-file }}
+        key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: ${{ inputs.cache-key-prefix }}
+    - name: Build and Check Links
+      env:
+        BUILD_COMMAND: ${{ inputs.build-command }}
+        LINK_CHECKER: '1'
+        LINK_CHECKER_CACHE: ${{ github.workspace }}/${{ inputs.working-directory }}/${{ inputs.cache-file }}
+      run: eval "$BUILD_COMMAND"
+    # GitHub caches can't be overwritten, so every run saves a new key and the next run restores the newest.
+    # Save even when dead links fail the build: the cache is written as each check succeeds.
+    - name: Save Link Checker Cache
+      if: always() && hashFiles(format('{0}/{1}', inputs.working-directory, inputs.cache-file)) != ''
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ inputs.working-directory }}/${{ inputs.cache-file }}
+        key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}

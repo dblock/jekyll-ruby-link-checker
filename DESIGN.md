@@ -4,17 +4,17 @@ This plugin checks the links in a Jekyll site while it builds and fails the buil
 
 ## Scope
 
-The first version will:
+The first version:
 
-- Collect every `<a href>` from rendered pages and documents, skipping assets such as CSS and JavaScript.
-- Check external links with [ruby-link-checker](https://github.com/dblock/ruby-link-checker) and its Typhoeus checker, with configurable concurrency, retries, and user agent.
-- Check internal links and anchors against the built site, following `jekyll-redirect-from` redirect pages.
-- Skip configured domains, URLs, and paths.
-- Reuse successful external checks for a configurable time with ruby-link-checker's persistent cache. Failures are never cached, so dead links are always checked again.
-- Fail the build with every dead link and the pages that link to it.
-- Provide a reusable workflow that restores the cache, builds the site, and saves the cache, even when the build fails on dead links.
+- Collects every `<a href>` from the rendered content of HTML pages and documents.
+- Checks external links with [ruby-link-checker](https://github.com/dblock/ruby-link-checker) and its Typhoeus checker, with configurable concurrency, retries, and user agent.
+- Checks internal links and anchors against the built site, following `jekyll-redirect-from` redirect pages. A path without an extension is a directory index or a page served without its `.html` extension, and relative links are resolved against the page that contains them.
+- Skips links with schemes other than `http` and `https`, and configured domains, URLs, and paths.
+- Reuses successful external checks for a configurable time with ruby-link-checker's persistent cache. Failures are never cached, so dead links are always checked again.
+- Fails the build with every dead link and the pages that link to it.
+- Provides a reusable workflow that restores the cache, builds the site, and saves the cache, even when the build fails on dead links.
 
-It will not check images or scripts, support generators other than Jekyll, change ruby-link-checker, fix links, or open issues; [html-proofer](https://github.com/gjtorikian/html-proofer) checks built HTML more broadly, and the calling workflow decides what to do with a failure.
+It does not check images or scripts, support generators other than Jekyll, change ruby-link-checker, fix links, or open issues; [html-proofer](https://github.com/gjtorikian/html-proofer) checks built HTML more broadly, and the calling workflow decides what to do with a failure.
 
 ## Configuration
 
@@ -37,9 +37,13 @@ link_checker:
 
 A page or document opts out with `link_checker: false` in front matter. Unknown options fail the build with the list of valid options. The plugin logs a summary by default, and each checked link, including cache hits, only with `verbose: true`.
 
+## Implementation
+
+Hooks in `hooks.rb` start a `Checker` before rendering when `LINK_CHECKER` is set, collect links from each page and document after it renders, and check them after the site is written, when internal targets exist on disk. `Configuration` validates options, `Urls` resolves relative links, turns absolute links to the site into paths, and applies exclusions, `InternalLinks` checks the built files, and `Report` counts links and raises `DeadLinksError`. ruby-link-checker reports cache hits when a link is queued, before the checker runs, so the result callback is registered before links are queued.
+
 ## Reusable Workflow
 
-`.github/workflows/check-links.yml` will be callable with `workflow_call`. It checks out the calling repository, installs optional system packages, sets up Ruby with Bundler caching, restores the newest cache saved under a key prefix, runs the build with `LINK_CHECKER=1`, and saves the cache under a key unique to the run and attempt. GitHub caches cannot be overwritten, so each run saves a new key and the next run restores the newest one through the prefix. The save runs even when the build fails, because ruby-link-checker writes the cache as each check succeeds.
+`.github/workflows/check-links.yml` is callable with `workflow_call`. It runs on a configurable runner, checks out the calling repository, runs an optional setup command, such as installing system libraries for native gems, sets up Ruby with Bundler caching, restores the newest cache saved under a key prefix, runs the build with `LINK_CHECKER=1` and `LINK_CHECKER_CACHE` pointing at the cache file, and saves the cache under a key unique to the run and attempt. GitHub caches cannot be overwritten, so each run saves a new key and the next run restores the newest one through the prefix. The save runs even when the build fails, because ruby-link-checker writes the cache as each check succeeds.
 
 ## Lessons from `jekyll-og-image`
 

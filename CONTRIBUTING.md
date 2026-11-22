@@ -27,7 +27,21 @@ Danger checks the changelog in PR CI through the reusable [danger-pr-comment](ht
 
 ## Tests
 
-Specs live in `spec/`. Test the plugin by building small fixture sites with Jekyll, and stub external requests with Typhoeus; specs must not use the network.
+Specs live in `spec/`. They build small sites with Jekyll in temporary directories, using `spec/support/site_helper.rb`, and stub external requests with Typhoeus; `Typhoeus::Config.block_connection` fails any request without a stub, so specs never use the network.
+
+`spec/fixtures/site` is a small Jekyll site that uses the gem from this checkout. The Integration workflow checks its links with the reusable workflow on every PR, using real external requests and the GitHub Actions cache. To check it locally:
+
+```sh
+cd spec/fixtures/site
+bundle install
+LINK_CHECKER=1 LINK_CHECKER_CACHE=$PWD/.cache/link-checker.json bundle exec jekyll build
+```
+
+Validate workflow changes with:
+
+```sh
+actionlint .github/workflows/*.yml
+```
 
 ## Pull Requests
 

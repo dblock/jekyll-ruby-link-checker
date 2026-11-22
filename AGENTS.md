@@ -10,6 +10,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, commands, tests, and PR rules
 - Never cache failures or errors; dead links must be checked again on every run.
 - Reject unknown configuration options with an error that lists the valid ones.
 - Test against real fixture sites built with Jekyll. Do not make network requests in specs; stub Typhoeus.
+- Keep the reusable workflow saving the cache when the build fails, and keep `spec/fixtures/site` checked by the Integration workflow.
+- Aim for full line and branch coverage with meaningful specs.
 - Pin every external action and reusable workflow to a full commit SHA with a trailing version comment.
 - Keep YAML workflow, job, and step names in Title Case.
 

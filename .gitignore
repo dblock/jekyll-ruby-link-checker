@@ -5,3 +5,8 @@
 /pkg/
 /vendor/
 /.ruby-lsp/
+/spec/fixtures/site/_site/
+/spec/fixtures/site/.cache/
+/spec/fixtures/site/.jekyll-cache/
+/spec/fixtures/site/Gemfile.lock
+/spec/fixtures/site/.setup-done

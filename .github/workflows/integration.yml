@@ -1,0 +1,20 @@
+name: Integration
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check-links:
+    uses: ./.github/workflows/check-links.yml
+    with:
+      ruby-version: '4.0'
+      working-directory: spec/fixtures/site
+      # The build fails unless the setup command ran first, in the site directory.
+      setup-command: touch .setup-done
+      build-command: test -f .setup-done && bundle exec jekyll build
+      cache-key-prefix: integration-link-checker-

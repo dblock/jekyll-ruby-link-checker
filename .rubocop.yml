@@ -15,6 +15,8 @@ AllCops:
     - 'vendor/**/*'
     - 'coverage/**/*'
     - 'pkg/**/*'
+    - 'spec/fixtures/site/_site/**/*'
+    - 'spec/fixtures/site/vendor/**/*'
 
 plugins:
   - rubocop-md
@@ -48,6 +50,7 @@ Naming/FileName:
   Exclude:
     - 'lib/jekyll-ruby-link-checker.rb'
     - '.github/workflows/danger-comment.yml'
+    - '.github/workflows/check-links.yml'
 
 # Reusable workflow references are pinned to a full commit SHA on one line.
 Layout/LineLength:
@@ -58,6 +61,13 @@ Layout/LineLength:
 Prose/MaxLength:
   Exclude:
     - LICENSE.txt
+
+# Specs build a fixture site per example and check several results of that one build.
+RSpec/ExampleLength:
+  Max: 25
+
+RSpec/MultipleExpectations:
+  Max: 8
 
 Spellcheck:
   DictionaryFiles:

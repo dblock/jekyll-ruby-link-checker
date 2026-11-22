@@ -197,6 +197,29 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     )
   end
 
+  it 'follows redirects to the final result' do
+    Typhoeus.stub('https://moved.example.org/').and_return(
+      Typhoeus::Response.new(code: 301, headers: { 'Location' => 'https://new.example.org/' }, body: '')
+    )
+    Typhoeus.stub('https://gone.example.org/').and_return(
+      Typhoeus::Response.new(code: 302, headers: { 'Location' => 'https://dead.example.org/' }, body: '')
+    )
+    stub_url('https://new.example.org/', 200)
+    stub_url('https://dead.example.org/', 404)
+
+    expect { build({ 'index.md' => page('[Moved](https://moved.example.org/) [Gone](https://gone.example.org/)') }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError,
+                      %r{\AFound 1 dead link:\nhttps://gone.example.org/ \(HTTP 404\), linked from index.md\z})
+  end
+
+  it 'falls back to GET when HEAD fails' do
+    Typhoeus.stub('https://nohead.example.org/') do |request|
+      Typhoeus::Response.new(code: request.options[:method] == :head ? 405 : 200, body: '')
+    end
+
+    expect { build({ 'index.md' => page('[No HEAD](https://nohead.example.org/)') }) }.not_to raise_error
+  end
+
   it 'sends the configured user agent' do
     Typhoeus.stub('https://ok.example.org/') do |request|
       Typhoeus::Response.new(code: request.options[:headers]['User-Agent'] == 'Test Checker' ? 200 : 403)

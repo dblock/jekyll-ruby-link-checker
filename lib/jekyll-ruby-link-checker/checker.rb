@@ -35,7 +35,8 @@ module Jekyll
         @site = site
         @config = Configuration.new(site.config['link_checker'])
         @urls = Urls.new(site, @config.exclude)
-        @report = Report.new(verbose: @config.verbose?, file: @config.report_file(site.source))
+        @report = Report.new(verbose: @config.verbose?, file: @config.report_file(site.source),
+                             fail_on_dead_links: @config.fail_on_dead_links?)
         @links = Hash.new { |hash, url| hash[url] = Set.new }
       end
 

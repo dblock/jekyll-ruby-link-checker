@@ -76,7 +76,7 @@ link_checker:
 | `user_agent`      | ruby-link-checker's | User agent sent with external checks.                                                                                   |
 | `verbose`         | `false`             | Log every link and its result, and ruby-link-checker's requests.                                                        |
 
-Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, and `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI.
+Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI, and `LINK_CHECKER_FAIL=0` to log dead links as a warning instead of failing the build.
 
 ## Reusable Workflows
 
@@ -106,16 +106,24 @@ jobs:
     uses: dblock/jekyll-ruby-link-checker/.github/workflows/check-links.yml@v0.1.0
 ```
 
-| Input               | Default                    | Description                                                                                                          |
-| ---                 | ---                        | ---                                                                                                                  |
-| `runs-on`           | `ubuntu-latest`            | Runner label, or a JSON list of labels.                                                                              |
-| `ruby-version`      | `default`                  | Ruby version, or `default` to read `.ruby-version`.                                                                  |
-| `working-directory` | `.`                        | Directory of the site.                                                                                               |
-| `setup-command`     | none                       | Shell command to run in the site directory before installing Ruby and gems, for example to install system libraries. |
-| `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                        |
-| `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
-| `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
-| `report-artifact`   | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
+| Input                | Default                    | Description                                                                                                          |
+| ---                  | ---                        | ---                                                                                                                  |
+| `runs-on`            | `ubuntu-latest`            | Runner label, or a JSON list of labels.                                                                              |
+| `ruby-version`       | `default`                  | Ruby version, or `default` to read `.ruby-version`.                                                                  |
+| `working-directory`  | `.`                        | Directory of the site.                                                                                               |
+| `setup-command`      | none                       | Shell command to run in the site directory before installing Ruby and gems, for example to install system libraries. |
+| `build-command`      | `bundle exec jekyll build` | Command that builds the site.                                                                                        |
+| `cache-file`         | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
+| `cache-key-prefix`   | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
+| `report-artifact`    | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
+| `fail-on-dead-links` | `true`                     | Fail the check on dead links; with `false`, dead links are reported with a warning and the check passes.             |
+
+To report dead links on pull requests without failing them, for example while the default branch has dead links of its own, pass an expression; `fail-on-dead-links` is a boolean, so it takes `true`, `false`, or an expression:
+
+```yaml
+    with:
+      fail-on-dead-links: ${{ github.event_name != 'pull_request' }}
+```
 
 The workflow inherits the caller's permissions and only needs `contents: read`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
 

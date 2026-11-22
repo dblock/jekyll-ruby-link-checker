@@ -4,7 +4,7 @@ require 'fileutils'
 
 module Jekyll
   module RubyLinkChecker
-    # Raised at the end of a build that found dead links, so the build fails.
+    # Raised at the end of a build that found dead links, so the build fails, unless dead links are only reported.
     class DeadLinksError < StandardError; end
 
     # Counts checked links and collects dead ones with the pages that link to them.
@@ -14,10 +14,12 @@ module Jekyll
       # A Markdown report starts with this marker, so a workflow can read the number of dead links.
       MARKER = 'jekyll-ruby-link-checker dead links:'
 
-      # Writes a Markdown report to `file`, when set, at the end of the build.
-      def initialize(verbose:, file: nil)
+      # Writes a Markdown report to `file`, when set, at the end of the build, and fails the build on dead links
+      # unless `fail_on_dead_links` is false.
+      def initialize(verbose:, file: nil, fail_on_dead_links: true)
         @verbose = verbose
         @file = file
+        @fail_on_dead_links = fail_on_dead_links
         @counts = Hash.new(0)
         @failures = {}
       end
@@ -39,6 +41,11 @@ module Jekyll
         Jekyll.logger.info('LinkChecker:', summary)
         write(@file) if @file
         return if @failures.empty?
+
+        unless @fail_on_dead_links
+          Jekyll.logger.warn('LinkChecker:', message)
+          return
+        end
 
         Jekyll.logger.error('LinkChecker:', message)
         raise DeadLinksError, message

@@ -35,6 +35,12 @@ on:
         description: Name of the artifact that holds the Markdown report of each run, or `false` to skip uploading it.
         type: string
         default: link-checker-report
+      fail-on-dead-links:
+        description: >-
+          Fail the check when it finds dead links; with `false`, dead links are reported, with a warning, and the check
+          passes. A build that fails for another reason still fails.
+        type: boolean
+        default: true
 
 # Jobs inherit the caller's permissions; this workflow only needs `contents: read`, so it can run on pull requests
 # from forks. Publish the report to a pull request comment or an issue with publish-report.yml.
@@ -80,6 +86,7 @@ jobs:
         LINK_CHECKER_REPORT: ${{ runner.temp }}/link-checker/link-checker-report.md
         BUILD_COMMAND: ${{ inputs.build-command }}
         LINK_CHECKER: '1'
+        LINK_CHECKER_FAIL: ${{ inputs.fail-on-dead-links }}
         LINK_CHECKER_CACHE: ${{ github.workspace }}/${{ inputs.working-directory }}/${{ inputs.cache-file }}
       run: eval "$BUILD_COMMAND"
     - name: Write Job Summary
@@ -89,6 +96,10 @@ jobs:
       run: |
         if [ -f "$REPORT" ]; then
           cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          dead=$(sed -n 's/^<!-- jekyll-ruby-link-checker dead links: \([0-9]*\) -->$/\1/p' "$REPORT" | head -n 1)
+          if [ "${dead:-0}" -gt 0 ]; then
+            echo "::warning title=Dead Links::Found $dead dead link(s); see the job summary."
+          fi
         fi
     - name: Upload Report
       if: always() && inputs.report-artifact != 'false' && inputs.report-artifact != ''

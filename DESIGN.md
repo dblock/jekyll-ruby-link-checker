@@ -45,6 +45,8 @@ Hooks in `hooks.rb` start a `Checker` before rendering when `LINK_CHECKER` is se
 
 `.github/workflows/check-links.yml` is callable with `workflow_call`. It runs on a configurable runner, checks out the calling repository, runs an optional setup command, such as installing system libraries for native gems, sets up Ruby with Bundler caching, restores the newest cache saved under a key prefix, runs the build with `LINK_CHECKER=1` and `LINK_CHECKER_CACHE` pointing at the cache file, and saves the cache under a key unique to the run and attempt. GitHub caches cannot be overwritten, so each run saves a new key and the next run restores the newest one through the prefix. The save runs even when the build fails, because ruby-link-checker writes the cache as each check succeeds.
 
+Dead links fail the build with `DeadLinksError` unless `LINK_CHECKER_FAIL` is off, in which case they're logged as a warning; the report is the same either way. Reporting without failing lives in the gem rather than in the workflow, with `continue-on-error`, so a build that fails for another reason still fails. The workflow's `fail-on-dead-links` input sets it, and the job summary step adds a warning annotation when there are dead links.
+
 The build writes a Markdown report to `LINK_CHECKER_REPORT`, starting with an HTML comment that holds the number of dead links, so workflows don't parse prose. The workflow adds the report to the job summary and uploads it as an artifact of the run, even when the build fails, with the pull request number for pull requests.
 
 ## Publishing Results

@@ -22,6 +22,7 @@ jobs:
       cache-key-prefix: integration-link-checker-
 
   # A second upload under the same name would fail, so this also checks that `false` skips the upload.
+  # Also adds a dead link, which only warns with `fail-on-dead-links: false`.
   check-links-without-report:
     uses: ./.github/workflows/check-links.yml
     permissions:
@@ -29,8 +30,10 @@ jobs:
     with:
       ruby-version: '4.0'
       working-directory: spec/fixtures/site
+      setup-command: printf '\n[Missing](/missing/)\n' >> index.md
       cache-key-prefix: integration-link-checker-
       report-artifact: 'false'
+      fail-on-dead-links: false
 
   # Publishes the report of this run: on a pull request, the fixture has no dead links and no comment exists, so
   # this checks the pull request and its comments and changes nothing; on master, it checks for an open issue.
@@ -50,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      checks: read
       contents: read
     steps:
     - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -67,3 +71,13 @@ jobs:
         count=$(gh api "repos/$GH_REPO/actions/runs/${{ github.run_id }}/artifacts" --jq '.total_count')
         echo "Artifacts: $count"
         test "$count" -eq 1
+    - name: Check Dead Links Only Warned
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        job=$(gh api "repos/$GH_REPO/actions/runs/${{ github.run_id }}/jobs" \
+          --jq '.jobs[] | select(.name == "check-links-without-report / Check Links") | .id')
+        gh api "repos/$GH_REPO/check-runs/$job/annotations" \
+          --jq '.[] | "\(.annotation_level): \(.message)"' | tee annotations.txt
+        grep -qx 'warning: Found 1 dead link(s); see the job summary.' annotations.txt

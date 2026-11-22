@@ -164,6 +164,25 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     MARKDOWN
   end
 
+  it 'reports dead links without failing the build when LINK_CHECKER_FAIL is off' do
+    report = File.join(dir, 'links.md')
+    files = { 'index.md' => page('[Missing](/missing/)') }
+
+    allow(Jekyll.logger).to receive(:warn)
+    %w[0 false No OFF].each do |value|
+      env = { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report, 'LINK_CHECKER_FAIL' => value }
+      expect { build(files, env: env) }.not_to raise_error
+      expect(File.read(report)).to start_with('<!-- jekyll-ruby-link-checker dead links: 1 -->')
+    end
+    expect(Jekyll.logger).to have_received(:warn)
+      .with('LinkChecker:', "Found 1 dead link:\n/missing/ (page not found), linked from index.md").exactly(4).times
+
+    %w[1 true].each do |value|
+      expect { build(files, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_FAIL' => value }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+    end
+  end
+
   it 'writes a report without dead links, and none unless LINK_CHECKER_REPORT is set' do
     report = File.join(dir, 'links.md')
     files = { 'index.md' => page('[About](/about/)'), 'about.md' => about }

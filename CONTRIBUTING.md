@@ -14,14 +14,7 @@ bundle exec rake build
 
 `bundle exec rake` runs the specs and RuboCop; run it before every push. `bundle exec rake build` builds the gem when packaging changes. Coverage reports (HTML and LCOV) go to `coverage/`, and CI uploads them to Coveralls; aim to cover all runtime code with meaningful specs, including errors and edge cases.
 
-RuboCop also checks documentation and YAML:
-
-- `rubocop-prose` checks Markdown prose and requires title-case headings.
-- `rubocop-md` checks Ruby code blocks in Markdown.
-- `rubocop-spellcheck` checks spelling in comments and documentation, not Ruby strings.
-- `rubocop-yaml` checks YAML.
-
-Keep each paragraph on one source line. Fix spelling mistakes; add only reviewed project words to `.spellcheck.txt`. Keep YAML workflow, job, and step names in Title Case.
+RuboCop also checks the documentation and YAML files: prose and title-case headings with `rubocop-prose`, Ruby examples in Markdown with `rubocop-md`, spelling in comments and documentation with `rubocop-spellcheck`, and YAML with `rubocop-yaml`. Keep each paragraph on one source line. Fix spelling mistakes; add only reviewed project words to `.spellcheck.txt`. Keep YAML workflow, job, and step names in Title Case.
 
 Danger checks the changelog in PR CI through the reusable [danger-pr-comment](https://github.com/danger/danger-pr-comment) workflows; you do not run it locally.
 

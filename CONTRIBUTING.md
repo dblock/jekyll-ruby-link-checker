@@ -40,8 +40,10 @@ LINK_CHECKER=1 LINK_CHECKER_CACHE=$PWD/.cache/link-checker.json bundle exec jeky
 Validate workflow changes with:
 
 ```sh
-actionlint .github/workflows/*.yml
+actionlint -ignore 'bool value cannot be assigned' .github/workflows/*.yml
 ```
+
+`actionlint` treats a quoted `'false'` passed to a string input of a reusable workflow, such as `report-artifact: 'false'`, as a boolean; GitHub Actions accepts it as a string, so that message is ignored.
 
 ## Pull Requests
 

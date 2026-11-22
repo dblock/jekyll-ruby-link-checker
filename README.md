@@ -112,6 +112,7 @@ jobs:
 | `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                        |
 | `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
 | `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
+| `report-artifact`   | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
 | `issue`             | `false`                    | Keep an open issue with the dead links up to date, and close it when all links work.                                 |
 | `issue-title`       | `Broken Links`             | Title of the issue.                                                                                                  |
 
@@ -119,7 +120,7 @@ The workflow inherits the caller's permissions: grant `contents: read`, and also
 
 ### Publishing Results
 
-Every run adds a report to its job summary: the summary line, and a table of dead links with the reason and the pages that link to each.
+Every run adds a report to its job summary, and attaches it to the run as the `link-checker-report` artifact, a `link-checker-report.md` file: the summary line, and a table of dead links with the reason and the pages that link to each. Download it from the run page, or with `gh run download <run id> --name link-checker-report`. Set `report-artifact: 'false'` to skip uploading it; quote `'false'`, because inputs of reusable workflows must match their declared type, and `report-artifact` is a string.
 
 With `issue: true`, the workflow also keeps one open issue, titled `issue-title`, up to date. A run with dead links opens the issue, or replaces the body of the open one, with the report and a link to the run. A run without dead links closes the open issue with a comment. A build that fails before checking links, for example while installing gems, leaves the issue unchanged. To act on a failure in another way, add a job that `needs: check-links` with `if: failure()`.
 

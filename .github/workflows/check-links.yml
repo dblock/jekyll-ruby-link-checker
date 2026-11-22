@@ -31,6 +31,10 @@ on:
         description: Prefix of the GitHub Actions cache keys that hold the link checker cache.
         type: string
         default: link-checker-
+      report-artifact:
+        description: Name of the artifact that holds the Markdown report of each run, or `false` to skip uploading it.
+        type: string
+        default: link-checker-report
       issue:
         description: Keep an open issue with the dead links up to date, and close it when all links work.
         type: boolean
@@ -84,6 +88,13 @@ jobs:
         if [ -f "$REPORT" ]; then
           cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
         fi
+    - name: Upload Report
+      if: always() && inputs.report-artifact != 'false' && inputs.report-artifact != ''
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.report-artifact }}
+        path: ${{ runner.temp }}/link-checker-report.md
+        if-no-files-found: ignore
     - name: Update Issue
       if: always() && inputs.issue
       env:

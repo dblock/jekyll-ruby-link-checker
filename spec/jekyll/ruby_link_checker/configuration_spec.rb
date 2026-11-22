@@ -29,6 +29,9 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
       .to have_attributes(file: '.cache/links.json', ttl: 12 * 3600, blocked_ttl: 86_400, prune: true)
     expect(configured.exclude).to have_attributes(domains: ['example.com'], urls: ['https://example.org/'])
     expect(configured.exclude.paths).to eq([%r{^/tags}])
+    urls = config('exclude' => { 'urls' => ['https://example.org/', '/\Ahttps:\/\/x\.org\//', '/'] }).exclude.urls
+    expect(urls.map { |url| [url.class, url.is_a?(Regexp) ? url.source : url] })
+      .to eq([[String, 'https://example.org/'], [Regexp, '\Ahttps:\/\/x\.org\/'], [String, '/']])
   end
 
   it 'passes no request options by default, so ruby-link-checker keeps its defaults' do
@@ -62,7 +65,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
       { 'headers' => { 'Accept' => 1 } } => 'link_checker.headers must be a set of header names and values',
       { 'host_headers' => ['x.org'] } => 'link_checker.host_headers must be a set of hosts and their headers',
       { 'host_headers' => { 'x.org' => 'y' } } => 'link_checker.host_headers.x.org must be a set of header',
-      { 'host_headers' => { '/(/' => {} } } => 'link_checker.host_headers must be a regular expression'
+      { 'host_headers' => { '/(/' => {} } } => 'link_checker.host_headers must be a regular expression',
+      { 'exclude' => { 'urls' => ['/(/'] } } => 'link_checker.exclude.urls must be a regular expression'
     }.each do |raw, message|
       expect { config(raw) }.to raise_error(Jekyll::Errors::InvalidConfigurationError, /\A#{Regexp.escape(message)}/)
     end
@@ -104,6 +108,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
       { 'cache' => 'file.json' },
       { 'exclude' => { 'domains' => 'example.com' } },
       { 'exclude' => { 'paths' => ['('] } },
+      { 'exclude' => { 'urls' => ['/(/'] } },
       { 'concurrency' => 0 },
       { 'concurrency' => '5' },
       { 'retries' => -1 },

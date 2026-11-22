@@ -22,7 +22,7 @@ module Jekyll
         def initialize(domains: [], urls: [], paths: [])
           super(
             domains: Values.list(domains, 'exclude.domains').map(&:downcase),
-            urls: Values.list(urls, 'exclude.urls'),
+            urls: Values.list(urls, 'exclude.urls').map { |url| Values.string_or_pattern(url, 'exclude.urls') },
             paths: Values.list(paths, 'exclude.paths').map { |path| Values.pattern(path, 'exclude.paths') }
           )
         end

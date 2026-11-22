@@ -67,14 +67,18 @@ module Jekyll
         invalid!(name, value, 'a set of header names and values')
       end
 
-      # Hosts are exact names, or regular expressions between slashes, such as /(\A|\.)medium\.com\z/.
+      # A string between slashes, such as /(\A|\.)medium\.com\z/, is a regular expression; any other string is matched
+      # exactly. YAML can't hold a Ruby Regexp.
+      def string_or_pattern(value, name)
+        value = value.to_s
+        value.length > 2 && value.start_with?('/') && value.end_with?('/') ? pattern(value[1..-2], name) : value
+      end
+
       def host_headers(value, name)
         invalid!(name, value, 'a set of hosts and their headers') unless value.is_a?(Hash)
 
         value.to_h do |host, headers|
-          host = host.to_s
-          key = host.length > 2 && host.start_with?('/') && host.end_with?('/') ? pattern(host[1..-2], name) : host
-          [key, headers(headers, "#{name}.#{host}")]
+          [string_or_pattern(host, name), headers(headers, "#{name}.#{host}")]
         end
       end
 

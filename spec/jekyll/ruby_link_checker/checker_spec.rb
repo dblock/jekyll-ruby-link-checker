@@ -51,6 +51,26 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
                       %r{Found 1 dead link:\nhttps://dead.example.org/ \(HTTP 404\), linked from index.md})
   end
 
+  it 'skips URLs that match a regular expression in exclude.urls, and matches other strings exactly' do
+    stub_url('https://github.com/issues', 404)
+    stub_url('https://example.org/x', 404)
+    links = '[A](https://github.com/issues?q=is%3Aopen) [B](https://github.com/pulls?q=is%3Apr) ' \
+            '[C](https://github.com/issues) [D](https://example.org/x)'
+    urls = ['/\Ahttps:\/\/github\.com\/(issues|pulls)\?/', '^https://example.org/x']
+
+    expect { build({ 'index.md' => page(links) }, link_checker: { 'exclude' => { 'urls' => urls } }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError,
+                      %r{\AFound 2 dead links:\nhttps://example.org/x .*\nhttps://github.com/issues })
+  end
+
+  it 'matches exclude.paths against the full URLs of external links' do
+    links = '[A](https://github.com/issues?q=is%3Aopen) [B](/tags/ruby/)'
+    paths = ['^/tags/', '^https://github\.com/issues']
+
+    expect { build({ 'index.md' => page(links) }, link_checker: { 'exclude' => { 'paths' => paths } }) }
+      .not_to raise_error
+  end
+
   it 'skips excluded domains and their subdomains, URLs, paths, and other schemes without requesting them' do
     expect do
       build(

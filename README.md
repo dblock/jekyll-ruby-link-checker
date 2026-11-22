@@ -57,8 +57,10 @@ link_checker:
     prune: true                    # forget links that are no longer on the site (default: false)
   exclude:
     domains: [twitter.com]         # sites never to check, including their subdomains
-    urls: [https://example.org/flaky]
-    paths: ['^/tags/']             # regular expressions
+    urls:                          # exact URLs, or /regular expressions/
+      - https://example.org/flaky
+      - '/\Ahttps:\/\/github\.com\/(issues|pulls)(\?|\z)/'
+    paths: ['^/tags/']             # regular expressions, matched against links as written in the page
   concurrency: 5                   # links checked at the same time (default: 5)
   retries: 1                       # retries of a failed link (default: 1)
   user_agent: My Site Link Checker
@@ -79,7 +81,7 @@ link_checker:
       Cookie: consent=1
 ```
 
-A duration is a number of seconds, or a number followed by `s`, `m`, `h`, `d`, or `w`. Dead links are never remembered, so they're checked again on every build. Pruning only happens when every page is checked. The options from `blocked` down are passed to ruby-link-checker; see its [documentation](https://github.com/dblock/ruby-link-checker#options) for details. Misspelled options fail the build with the list of valid ones.
+An entry of `exclude.urls` between slashes is a regular expression, because YAML can't hold one; any other entry is an exact URL. Patterns in `exclude.paths` are matched against every link: links to your site as paths, such as `/tags/ruby/`, and links to other sites as full URLs, so `'^https://github\.com/issues'` also works there. A duration is a number of seconds, or a number followed by `s`, `m`, `h`, `d`, or `w`. Dead links are never remembered, so they're checked again on every build. Pruning only happens when every page is checked. The options from `blocked` down are passed to ruby-link-checker; see its [documentation](https://github.com/dblock/ruby-link-checker#options) for details. Misspelled options fail the build with the list of valid ones.
 
 A few environment variables change how a build checks links, mostly for CI:
 

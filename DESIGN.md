@@ -14,7 +14,7 @@ Checking is off unless `LINK_CHECKER` is set, so that ordinary builds and `jekyl
 
 `Configuration` reads and validates `link_checker` in `_config.yml`, with the help of `Values`, and rejects unknown options with the list of valid ones. `Urls` resolves relative links and applies exclusions, `InternalLinks` checks the built files, and `Report` collects the results, writes the report, and raises `DeadLinksError` when there are dead links.
 
-Options that are passed to ruby-link-checker, such as `host_concurrency`, are only passed when they're set, so they keep ruby-link-checker's defaults. Their names describe the site rather than copy ruby-link-checker's. YAML can't hold a Ruby regular expression, so a `host_headers` key between slashes is read as one.
+Options that are passed to ruby-link-checker, such as `host_concurrency`, are only passed when they're set, so they keep ruby-link-checker's defaults. Their names describe the site rather than copy ruby-link-checker's. YAML can't hold a Ruby regular expression, so a `host_headers` key or an `exclude.urls` entry between slashes is read as one; other strings are matched exactly. `exclude.paths` patterns are matched against each link after links to the site are turned into paths, so they also see the full URLs of external links. That's documented rather than restricted to site paths, which would break existing configurations.
 
 ## Results
 

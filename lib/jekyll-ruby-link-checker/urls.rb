@@ -41,13 +41,18 @@ module Jekyll
       # Links with other schemes, such as `mailto:`, and configured exclusions are not checked.
       def excluded?(url)
         return true if url.match?(SCHEME) && !self.class.external?(url)
-        return true if @exclude.urls.include?(url)
+        return true if excluded_url?(url)
         return true if @exclude.paths.any? { |pattern| pattern.match?(url) }
 
         self.class.external?(url) && excluded_domain?(url)
       end
 
       private
+
+      # Excluded URLs are exact, or regular expressions.
+      def excluded_url?(url)
+        @exclude.urls.any? { |excluded| excluded.is_a?(Regexp) ? excluded.match?(url) : excluded == url }
+      end
 
       def excluded_domain?(url)
         host = URI.parse(url).host.to_s.downcase

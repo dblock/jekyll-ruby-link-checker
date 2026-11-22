@@ -100,29 +100,34 @@ jobs:
   check-links:
     uses: dblock/jekyll-ruby-link-checker/.github/workflows/check-links.yml@v0.1.0
     with:
-      issue: true
+      issue: 'true'
 ```
 
-| Input               | Default                    | Description                                                                                                          |
-| ---                 | ---                        | ---                                                                                                                  |
-| `runs-on`           | `ubuntu-latest`            | Runner label, or a JSON list of labels.                                                                              |
-| `ruby-version`      | `default`                  | Ruby version, or `default` to read `.ruby-version`.                                                                  |
-| `working-directory` | `.`                        | Directory of the site.                                                                                               |
-| `setup-command`     | none                       | Shell command to run in the site directory before installing Ruby and gems, for example to install system libraries. |
-| `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                        |
-| `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
-| `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
-| `report-artifact`   | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
-| `issue`             | `false`                    | Keep an open issue with the dead links up to date, and close it when all links work.                                 |
-| `issue-title`       | `Broken Links`             | Title of the issue.                                                                                                  |
+| Input               | Default                    | Description                                                                                                                                              |
+| ---                 | ---                        | ---                                                                                                                                                      |
+| `runs-on`           | `ubuntu-latest`            | Runner label, or a JSON list of labels.                                                                                                                  |
+| `ruby-version`      | `default`                  | Ruby version, or `default` to read `.ruby-version`.                                                                                                      |
+| `working-directory` | `.`                        | Directory of the site.                                                                                                                                   |
+| `setup-command`     | none                       | Shell command to run in the site directory before installing Ruby and gems, for example to install system libraries.                                     |
+| `build-command`     | `bundle exec jekyll build` | Command that builds the site.                                                                                                                            |
+| `cache-file`        | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                                                              |
+| `cache-key-prefix`  | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                                                                 |
+| `report-artifact`   | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                                                               |
+| `issue`             | `'false'`                  | `'true'` keeps an issue titled `Broken Links` up to date, another value is the title of the issue, and a number, such as `'123'`, is an issue by number. |
 
-The workflow inherits the caller's permissions: grant `contents: read`, and also `issues: write` with `issue: true`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
+The workflow inherits the caller's permissions: grant `contents: read`, and also `issues: write` with `issue`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
 
 ### Publishing Results
 
 Every run adds a report to its job summary, and attaches it to the run as the `link-checker-report` artifact, a `link-checker-report.md` file: the summary line, and a table of dead links with the reason and the pages that link to each. Download it from the run page, or with `gh run download <run id> --name link-checker-report`. Set `report-artifact: 'false'` to skip uploading it; quote `'false'`, because inputs of reusable workflows must match their declared type, and `report-artifact` is a string.
 
-With `issue: true`, the workflow also keeps one open issue, titled `issue-title`, up to date. A run with dead links opens the issue, or replaces the body of the open one, with the report and a link to the run. A run without dead links closes the open issue with a comment. A build that fails before checking links, for example while installing gems, leaves the issue unchanged. To act on a failure in another way, add a job that `needs: check-links` with `if: failure()`.
+With `issue`, the workflow also keeps an issue up to date:
+
+- `issue: 'true'` uses an issue titled `Broken Links`,
+- `issue: Dead Links on the Blog` uses an issue with that title,
+- `issue: '123'` uses issue 123.
+
+A run with dead links replaces the body of the issue with the report and a link to the run: an issue found by title is opened when there is no open issue with that title, and an issue given by number is reopened when it's closed. A run without dead links closes the issue with a comment. `issue` is a string, so quote `'true'`, `'false'`, and numbers: inputs of reusable workflows must match their declared type. A build that fails before checking links, for example while installing gems, leaves the issue unchanged. To act on a failure in another way, add a job that `needs: check-links` with `if: failure()`.
 
 ## Contributing
 

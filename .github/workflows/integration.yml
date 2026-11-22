@@ -21,9 +21,8 @@ jobs:
       setup-command: touch .setup-done
       build-command: test -f .setup-done && bundle exec jekyll build
       cache-key-prefix: integration-link-checker-
-      # The fixture has no dead links, so this checks for an open issue and changes nothing.
-      issue: true
-      issue-title: Integration Broken Links
+      # The fixture has no dead links, so this checks for an open issue with this title and changes nothing.
+      issue: Integration Broken Links
 
   # A second upload under the same name would fail, so this also checks that `false` skips the upload.
   check-links-without-report:

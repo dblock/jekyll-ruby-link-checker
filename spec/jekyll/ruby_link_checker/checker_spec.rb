@@ -160,7 +160,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
       | Link | Reason | Linked From |
       | --- | --- | --- |
       | /missing/ | page not found | index.md |
-      | https://dead.example.org/a\\|b | bad URI (is not URI?): "https://dead.example.org/a\\|b" | index.md |
+      | https://dead.example.org/a\\|b | Invalid URL | index.md |
     MARKDOWN
   end
 
@@ -195,6 +195,70 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
       "<!-- jekyll-ruby-link-checker dead links: 0 -->\n\n" \
       "Checked 1 internal and 0 external links (0 cached), skipped 0.\n\nNo dead links.\n"
     )
+  end
+
+  context 'with links blocked by bot protection' do
+    let(:report) { File.join(dir, 'links.md') }
+
+    before do
+      stub_url('https://walled.example.org/', 403)
+      stub_url('https://linkedin.example.org/', 999)
+      Typhoeus.stub('https://challenge.example.org/').and_return(
+        Typhoeus::Response.new(code: 503, headers: { 'cf-mitigated' => 'challenge' }, body: '')
+      )
+      allow(Jekyll.logger).to receive(:warn)
+    end
+
+    def build_blocked
+      build({ 'index.md' => page('[A](https://walled.example.org/) [B](https://linkedin.example.org/) ' \
+                                 '[C](https://challenge.example.org/)') },
+            env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+    end
+
+    it 'warns that they are unverified without failing the build' do
+      expect { build_blocked }.not_to raise_error
+
+      expect(Jekyll.logger).to have_received(:warn).with(
+        'LinkChecker:',
+        "Couldn't verify 3 links, which bot protection blocked:\n" \
+        "https://challenge.example.org/ (Cloudflare challenge (HTTP 503)), linked from index.md\n" \
+        "https://linkedin.example.org/ (HTTP 999), linked from index.md\n" \
+        'https://walled.example.org/ (HTTP 403), linked from index.md'
+      )
+    end
+
+    it 'lists them in the report' do
+      build_blocked
+
+      expect(File.read(report)).to eq(<<~MARKDOWN)
+        <!-- jekyll-ruby-link-checker dead links: 0 -->
+
+        Checked 0 internal and 3 external links (0 cached), skipped 0. Couldn't verify 3 links.
+
+        No dead links.
+
+        ## Unverified Links
+
+        Bot protection blocked these checks, so these links may work. Check them in a browser.
+
+        | Link | Reason | Linked From |
+        | --- | --- | --- |
+        | https://challenge.example.org/ | Cloudflare challenge (HTTP 503) | index.md |
+        | https://linkedin.example.org/ | HTTP 999 | index.md |
+        | https://walled.example.org/ | HTTP 403 | index.md |
+      MARKDOWN
+    end
+  end
+
+  it 'fails only on dead links when others are unverified' do
+    stub_url('https://walled.example.org/', 403)
+    stub_url('https://dead.example.org/', 404)
+    allow(Jekyll.logger).to receive(:warn)
+
+    expect { build({ 'index.md' => page('[A](https://walled.example.org/) [B](https://dead.example.org/)') }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError,
+                      %r{\AFound 1 dead link:\nhttps://dead.example.org/ \(HTTP 404\), linked from index.md\z})
+    expect(Jekyll.logger).to have_received(:warn).with('LinkChecker:', /\ACouldn't verify 1 link, /)
   end
 
   it 'follows redirects to the final result' do

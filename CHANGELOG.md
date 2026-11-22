@@ -11,4 +11,5 @@
 - [#10](https://github.com/dblock/jekyll-ruby-link-checker/pull/10): Add `LINK_CHECKER_FAIL` and the `fail-on-dead-links` workflow input to report dead links without failing the build, for example on pull requests - [@dblock](https://github.com/dblock).
 - [#11](https://github.com/dblock/jekyll-ruby-link-checker/pull/11): Add `LINK_CHECKER_CHANGED_FILES` and the `changed-files-only` workflow input, on by default, to only check the pages a pull request changes - [@dblock](https://github.com/dblock).
 - [#14](https://github.com/dblock/jekyll-ruby-link-checker/pull/14): Fix reporting redirects and a failed HEAD before GET as dead links - [@dblock](https://github.com/dblock).
+- [#15](https://github.com/dblock/jekyll-ruby-link-checker/pull/15): Upgrade to ruby-link-checker 0.6, report links blocked by bot protection as unverified without failing the build, and use ruby-link-checker's reasons - [@dblock](https://github.com/dblock).
 - Your contribution here.

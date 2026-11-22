@@ -9,7 +9,7 @@ module Jekyll
 
     # Counts checked links and collects dead ones with the pages that link to them.
     class Report
-      attr_reader :counts, :failures
+      attr_reader :counts, :failures, :unverified
 
       # A Markdown report starts with this marker, so a workflow can read the number of dead links.
       MARKER = 'jekyll-ruby-link-checker dead links:'
@@ -23,6 +23,7 @@ module Jekyll
         @changed_pages = changed_pages
         @counts = Hash.new(0)
         @failures = {}
+        @unverified = {}
       end
 
       def count(kind)
@@ -30,8 +31,18 @@ module Jekyll
       end
 
       def fail(url, locations, reason)
-        @failures[url] ||= { reason: reason, locations: Set.new }
-        @failures[url][:locations].merge(Array(locations))
+        add(@failures, url, locations, reason)
+      end
+
+      # Records the final result of an external link from ruby-link-checker. Links blocked by bot protection may work,
+      # so they're unverified rather than dead, and don't fail the build.
+      def record(result)
+        url = result.uri.to_s
+        count(:cached) if result.cached?
+        return log(url, result.cached? ? 'OK (cached)' : 'OK') if result.success?
+
+        log(url, result.blocked? ? "#{result.reason}, unverified" : result.reason)
+        add(result.blocked? ? @unverified : @failures, url, result.options[:locations], result.reason)
       end
 
       def log(url, status)
@@ -41,6 +52,7 @@ module Jekyll
       def finish
         Jekyll.logger.info('LinkChecker:', summary)
         write(@file) if @file
+        warn_unverified
         return if @failures.empty?
 
         unless @fail_on_dead_links
@@ -54,24 +66,53 @@ module Jekyll
 
       def summary
         "Checked #{@counts[:internal]} internal and #{@counts[:external]} external links " \
-          "(#{@counts[:cached]} cached)#{scope}, skipped #{@counts[:excluded]}."
+          "(#{@counts[:cached]} cached)#{scope}, skipped #{@counts[:excluded]}.#{unverified_summary}"
       end
 
       def markdown
         lines = ["<!-- #{MARKER} #{@failures.size} -->", '', summary, '']
-        table = ['| Link | Reason | Linked From |', '| --- | --- | --- |', *rows]
-        lines += @failures.empty? ? ['No dead links.'] : table
+        lines += @failures.empty? ? ['No dead links.'] : table(@failures)
+        lines += ['', '## Unverified Links', '', UNVERIFIED, '', *table(@unverified)] unless @unverified.empty?
         "#{lines.join("\n")}\n"
       end
 
       def message
-        lines = @failures.sort.map do |url, failure|
-          "#{url} (#{failure[:reason]}), linked from #{failure[:locations].sort.join(', ')}"
-        end
-        "Found #{lines.size} dead link#{'s' unless lines.size == 1}:\n#{lines.join("\n")}"
+        "Found #{plural(@failures.size, 'dead link')}:\n#{list(@failures)}"
       end
 
+      def unverified_message
+        "Couldn't verify #{plural(@unverified.size, 'link')}, which bot protection blocked:\n#{list(@unverified)}"
+      end
+
+      UNVERIFIED = 'Bot protection blocked these checks, so these links may work. Check them in a browser.'
+
       private
+
+      def add(links, url, locations, reason)
+        links[url] ||= { reason: reason, locations: Set.new }
+        links[url][:locations].merge(Array(locations))
+      end
+
+      def warn_unverified
+        Jekyll.logger.warn('LinkChecker:', unverified_message) unless @unverified.empty?
+      end
+
+      def plural(count, noun)
+        "#{count} #{noun}#{'s' unless count == 1}"
+      end
+
+      def list(links)
+        links.sort.map { |url, link| "#{url} (#{link[:reason]}), linked from #{link[:locations].sort.join(', ')}" }
+             .join("\n")
+      end
+
+      def unverified_summary
+        @unverified.empty? ? '' : " Couldn't verify #{plural(@unverified.size, 'link')}."
+      end
+
+      def table(links)
+        ['| Link | Reason | Linked From |', '| --- | --- | --- |', *rows(links)]
+      end
 
       def scope
         return '' unless @changed_pages
@@ -84,10 +125,10 @@ module Jekyll
         File.write(file, markdown)
       end
 
-      def rows
-        @failures.sort.map do |url, failure|
-          locations = failure[:locations].sort.map { |location| cell(location) }.join(', ')
-          "| #{cell(url)} | #{cell(failure[:reason])} | #{locations} |"
+      def rows(links)
+        links.sort.map do |url, link|
+          locations = link[:locations].sort.map { |location| cell(location) }.join(', ')
+          "| #{cell(url)} | #{cell(link[:reason])} | #{locations} |"
         end
       end
 

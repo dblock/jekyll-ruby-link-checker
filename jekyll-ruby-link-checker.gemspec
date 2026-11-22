@@ -25,6 +25,6 @@ Gem::Specification.new do |s|
   }
 
   s.add_dependency 'jekyll', '>= 4.0', '< 5'
-  s.add_dependency 'ruby-link-checker', '~> 0.5'
+  s.add_dependency 'ruby-link-checker', '~> 0.6'
   s.add_dependency 'typhoeus', '~> 1.4'
 end

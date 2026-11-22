@@ -11,6 +11,7 @@ The first version:
 - Checks internal links and anchors against the built site, following `jekyll-redirect-from` redirect pages. A path without an extension is a directory index or a page served without its `.html` extension, and relative links are resolved against the page that contains them.
 - Skips links with schemes other than `http` and `https`, and configured domains, URLs, and paths.
 - Reuses successful external checks for a configurable time with ruby-link-checker's persistent cache. Failures are never cached, so dead links are always checked again.
+- Reports links that ruby-link-checker classifies as blocked by bot protection, by status (401, 403, 429, 999) or by a detected challenge, as unverified: they're listed separately, with ruby-link-checker's reason, and don't fail the build, because the page behind a bot wall usually exists. Results are recorded from ruby-link-checker's `complete` event, which fires once per link with its final result, not from `result`, which fires for every attempt, including each redirect.
 - Fails the build with every dead link and the pages that link to it.
 - Provides a reusable workflow that restores the cache, builds the site, and saves the cache, even when the build fails on dead links.
 

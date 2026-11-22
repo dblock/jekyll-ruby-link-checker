@@ -105,22 +105,10 @@ module Jekyll
 
       def external_checker
         checker = LinkChecker::Typhoeus::Hydra::Checker.new(**checker_options)
-        # `result` is published for every attempt, including each redirect and a failed HEAD before GET, so only
-        # record the outcome of each link. Cache hits are reported when a link is queued, before the checker runs.
-        checker.on(:success, :failure, :error) { |result| record(result) }
+        # `complete` is published once per link with its final result, unlike `result`, which is published for every
+        # attempt, including each redirect. Cache hits are reported when a link is queued, before the checker runs.
+        checker.on(:complete) { |result| @report.record(result) }
         checker
-      end
-
-      def record(result)
-        url = result.uri.to_s
-        if result.success?
-          @report.count(:cached) if result.cached?
-          @report.log(url, result.cached? ? 'OK (cached)' : 'OK')
-        else
-          reason = result.error ? result.error.to_s : "HTTP #{result.code}"
-          @report.log(url, reason)
-          @report.fail(url, result.options[:locations], reason)
-        end
       end
 
       def checker_options

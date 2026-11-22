@@ -1,6 +1,8 @@
 APIs
+backoff
 Bundler
 CHANGELOG
+Cloudflare
 dblock
 Dependabot
 gemspec

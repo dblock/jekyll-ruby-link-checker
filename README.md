@@ -37,11 +37,15 @@ The plugin checks the links in the content of every HTML page and document:
 It prints a summary, and fails the build listing each dead link with the pages that link to it:
 
 ```text
-LinkChecker: Checked 412 internal and 2793 external links (2731 cached), skipped 25.
+LinkChecker: Checked 412 internal and 2793 external links (2731 cached), skipped 25. Couldn't verify 1 link.
+LinkChecker: Couldn't verify 1 link, which bot protection blocked:
+https://www.linkedin.com/in/someone (HTTP 999), linked from about.md
 LinkChecker: Found 2 dead links:
 /missing/ (page not found), linked from _posts/2026-11-22-hello.md
 https://example.org/gone (HTTP 404), linked from about.md
 ```
+
+Many sites answer automated requests with HTTP 401, 403, 429, or 999, or with a Cloudflare challenge, even though the page exists. Those links are reported as unverified, with a warning and in their own section of the report, and don't fail the build. Rate-limited links are retried with exponential backoff per host first.
 
 Links with other schemes, such as `mailto:`, aren't checked. A page or document opts out with `link_checker: false` in its front matter.
 

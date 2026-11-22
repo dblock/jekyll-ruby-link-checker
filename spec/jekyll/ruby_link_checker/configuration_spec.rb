@@ -9,13 +9,13 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
     defaults = config(nil)
 
     expect(defaults).to have_attributes(concurrency: 5, retries: 1, user_agent: nil, verbose?: false)
-    expect(defaults.cache).to have_attributes(file: nil, ttl: 30 * 86_400)
+    expect(defaults.cache).to have_attributes(file: nil, ttl: 30 * 86_400, blocked_ttl: nil, prune: false)
     expect(defaults.exclude).to have_attributes(domains: [], urls: [], paths: [])
   end
 
   it 'reads all options' do
     configured = config(
-      'cache' => { 'file' => '.cache/links.json', 'ttl' => '12h' },
+      'cache' => { 'file' => '.cache/links.json', 'ttl' => '12h', 'blocked_ttl' => '1d', 'prune' => true },
       'exclude' => { 'domains' => ['Example.COM'], 'urls' => ['https://example.org/'], 'paths' => ['^/tags'] },
       'concurrency' => 2,
       'retries' => 0,
@@ -24,7 +24,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
     )
 
     expect(configured).to have_attributes(concurrency: 2, retries: 0, user_agent: 'Test Checker', verbose?: true)
-    expect(configured.cache).to have_attributes(file: '.cache/links.json', ttl: 12 * 3600)
+    expect(configured.cache)
+      .to have_attributes(file: '.cache/links.json', ttl: 12 * 3600, blocked_ttl: 86_400, prune: true)
     expect(configured.exclude).to have_attributes(domains: ['example.com'], urls: ['https://example.org/'])
     expect(configured.exclude.paths).to eq([%r{^/tags}])
   end
@@ -92,7 +93,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
   it 'rejects unknown section options with the valid ones' do
     expect { config('cache' => { 'path' => 'x' }) }.to raise_error(
       Jekyll::Errors::InvalidConfigurationError,
-      'Unknown link_checker.cache option: path. Valid options: file, ttl'
+      'Unknown link_checker.cache option: path. Valid options: file, ttl, blocked_ttl, prune'
     )
   end
 
@@ -104,7 +105,9 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
       { 'exclude' => { 'paths' => ['('] } },
       { 'concurrency' => 0 },
       { 'concurrency' => '5' },
-      { 'retries' => -1 }
+      { 'retries' => -1 },
+      { 'cache' => { 'blocked_ttl' => 0 } },
+      { 'cache' => { 'prune' => 'yes' } }
     ].each do |raw|
       expect { config(raw) }.to raise_error(Jekyll::Errors::InvalidConfigurationError, /link_checker/)
     end

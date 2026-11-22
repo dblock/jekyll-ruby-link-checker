@@ -4,10 +4,16 @@ module Jekyll
   module RubyLinkChecker
     # Settings from `link_checker` in `_config.yml`, validated when the build starts.
     class Configuration
-      # Reuses successful external checks for `ttl` from a cache `file`, relative to the site source.
-      Cache = Data.define(:file, :ttl) do
-        def initialize(file: nil, ttl: '30d')
-          super(file: file, ttl: Values.duration(ttl, 'cache.ttl'))
+      # Reuses successful external checks for `ttl`, and unverified ones for `blocked_ttl`, from a cache `file`,
+      # relative to the site source, and with `prune`, removes entries of links that a full check no longer checks.
+      Cache = Data.define(:file, :ttl, :blocked_ttl, :prune) do
+        def initialize(file: nil, ttl: '30d', blocked_ttl: nil, prune: false)
+          super(
+            file: file,
+            ttl: Values.duration(ttl, 'cache.ttl'),
+            blocked_ttl: blocked_ttl.nil? ? nil : Values.duration(blocked_ttl, 'cache.blocked_ttl'),
+            prune: Values.boolean(prune, 'cache.prune')
+          )
         end
       end
 
@@ -49,13 +55,17 @@ module Jekyll
         @verbose
       end
 
-      # LINK_CHECKER_CACHE overrides the configured cache file, for example in a CI workflow.
-      def cache_options(source)
+      # LINK_CHECKER_CACHE overrides the configured cache file, for example in a CI workflow. Only a `full` check
+      # prunes, because a check of some pages would remove the entries of the links on the others.
+      def cache_options(source, full: true)
         file = ENV.fetch('LINK_CHECKER_CACHE', '').strip
         file = @cache.file.to_s if file.empty?
         return nil if file.empty?
 
-        { file: File.expand_path(file, source), ttl: @cache.ttl }
+        options = { file: File.expand_path(file, source), ttl: @cache.ttl }
+        options[:blocked_ttl] = @cache.blocked_ttl if @cache.blocked_ttl
+        options[:prune] = true if @cache.prune && full
+        options
       end
 
       # LINK_CHECKER_REPORT names a file for a Markdown report, for example in a CI workflow.

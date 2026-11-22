@@ -134,6 +134,59 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     expect(JSON.parse(File.read(cache))['entries'].size).to eq(1)
   end
 
+  it 'reuses unverified checks for cache.blocked_ttl' do
+    stub_url('https://walled.example.org/', 403)
+    allow(Jekyll.logger).to receive(:warn)
+    files = { 'index.md' => page('[A](https://walled.example.org/)') }
+    cache = { 'file' => '.cache/links.json', 'blocked_ttl' => '1d' }
+
+    build(files, link_checker: { 'cache' => cache })
+    Typhoeus::Expectation.clear
+    stub_url('https://walled.example.org/', 404)
+
+    expect { build(files, link_checker: { 'cache' => cache }) }.not_to raise_error
+    expect { build(files, link_checker: { 'cache' => cache.except('blocked_ttl') }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, /HTTP 404/)
+  end
+
+  context 'with cache.prune' do
+    let(:cache) { File.join(dir, 'source', '.cache', 'links.json') }
+    let(:both) { { 'index.md' => page('[A](https://a.example.org/) [B](https://b.example.org/)') } }
+    let(:one) { { 'index.md' => page('[A](https://a.example.org/)') } }
+
+    before do
+      stub_url('https://a.example.org/', 200)
+      stub_url('https://b.example.org/', 200)
+    end
+
+    def entries = JSON.parse(File.read(cache))['entries'].size
+
+    def build_cached(files, prune:, env: { 'LINK_CHECKER' => '1' })
+      build(files, link_checker: { 'cache' => { 'file' => '.cache/links.json', 'prune' => prune } }, env: env)
+    end
+
+    it 'removes the entries of links that are no longer checked' do
+      build_cached(both, prune: true)
+      expect(entries).to eq(2)
+
+      build_cached(one, prune: false)
+      expect(entries).to eq(2)
+
+      build_cached(one, prune: true)
+      expect(entries).to eq(1)
+    end
+
+    it 'keeps entries when only changed pages are checked' do
+      build_cached(both, prune: true)
+      changed = File.join(dir, 'changed.txt')
+      File.write(changed, "other.md\n")
+
+      env = { 'LINK_CHECKER' => '1', 'LINK_CHECKER_CHANGED_FILES' => changed }
+      build_cached(one.merge('other.md' => page('Other')), prune: true, env: env)
+      expect(entries).to eq(2)
+    end
+  end
+
   it 'uses LINK_CHECKER_CACHE instead of the configured cache file' do
     stub_url('https://ok.example.org/', 200)
     cache = File.join(dir, 'ci-cache.json')

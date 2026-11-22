@@ -4,12 +4,10 @@ module Jekyll
   module RubyLinkChecker
     # Settings from `link_checker` in `_config.yml`, validated when the build starts.
     class Configuration
-      DURATION_UNITS = { 's' => 1, 'm' => 60, 'h' => 3600, 'd' => 86_400, 'w' => 604_800 }.freeze
-
       # Reuses successful external checks for `ttl` from a cache `file`, relative to the site source.
       Cache = Data.define(:file, :ttl) do
         def initialize(file: nil, ttl: '30d')
-          super(file: file, ttl: Configuration.duration(ttl, 'cache.ttl'))
+          super(file: file, ttl: Values.duration(ttl, 'cache.ttl'))
         end
       end
 
@@ -17,58 +15,33 @@ module Jekyll
       Exclude = Data.define(:domains, :urls, :paths) do
         def initialize(domains: [], urls: [], paths: [])
           super(
-            domains: Configuration.list(domains, 'exclude.domains').map(&:downcase),
-            urls: Configuration.list(urls, 'exclude.urls'),
-            paths: Configuration.list(paths, 'exclude.paths').map { |path| Configuration.pattern(path) }
+            domains: Values.list(domains, 'exclude.domains').map(&:downcase),
+            urls: Values.list(urls, 'exclude.urls'),
+            paths: Values.list(paths, 'exclude.paths').map { |path| Values.pattern(path, 'exclude.paths') }
           )
         end
       end
 
-      OPTIONS = %w[cache exclude concurrency retries user_agent verbose].freeze
+      # Options passed to ruby-link-checker, with its name and a reader; unset options keep its defaults.
+      REQUEST_OPTIONS = {
+        'blocked' => %i[blocked_status_codes status_codes],
+        'detect_challenges' => %i[detect_challenges boolean],
+        'timeout' => %i[timeout duration],
+        'connect_timeout' => %i[connecttimeout duration],
+        'host_concurrency' => %i[max_concurrency_per_host positive_integer],
+        'host_interval' => %i[min_host_interval seconds],
+        'headers' => %i[headers headers],
+        'host_headers' => %i[host_headers host_headers]
+      }.freeze
 
-      attr_reader :cache, :exclude, :concurrency, :retries, :user_agent
+      OPTIONS = (%w[cache exclude concurrency retries user_agent verbose] + REQUEST_OPTIONS.keys).freeze
 
-      def self.duration(value, name)
-        return value if value.is_a?(Integer) && value.positive?
-
-        match = /\A(\d+)\s*([smhdw]?)\z/.match(value.to_s.strip)
-        invalid!(name, value, 'a positive number of seconds or a duration such as 12h or 30d') unless match
-
-        seconds = Integer(match[1], 10) * DURATION_UNITS.fetch(match[2], 1)
-        invalid!(name, value, 'a positive duration') unless seconds.positive?
-        seconds
-      end
-
-      def self.list(value, name)
-        invalid!(name, value, 'a list') unless value.is_a?(Array)
-
-        value.map(&:to_s)
-      end
-
-      def self.pattern(value)
-        Regexp.new(value)
-      rescue RegexpError => e
-        invalid!('exclude.paths', value, "a regular expression (#{e.message})")
-      end
-
-      def self.invalid!(name, value, expected)
-        option = name.empty? ? 'link_checker' : "link_checker.#{name}"
-        raise Jekyll::Errors::InvalidConfigurationError, "#{option} must be #{expected}, got #{value.inspect}"
-      end
-
-      def self.known!(options, valid, name)
-        unknown = options.keys.map(&:to_s) - valid.map(&:to_s)
-        return if unknown.empty?
-
-        option = name.empty? ? 'link_checker' : "link_checker.#{name}"
-        raise Jekyll::Errors::InvalidConfigurationError,
-              "Unknown #{option} option: #{unknown.join(', ')}. Valid options: #{valid.join(', ')}"
-      end
+      attr_reader :cache, :exclude, :concurrency, :retries, :user_agent, :request_options
 
       def initialize(raw)
         raw ||= {}
-        self.class.invalid!('', raw, 'a set of options') unless raw.is_a?(Hash)
-        self.class.known!(raw, OPTIONS, '')
+        Values.invalid!('', raw, 'a set of options') unless raw.is_a?(Hash)
+        Values.known!(raw, OPTIONS, '')
         read(raw)
       end
 
@@ -108,31 +81,28 @@ module Jekyll
       def read(raw)
         @cache = section(Cache, raw['cache'], 'cache')
         @exclude = section(Exclude, raw['exclude'], 'exclude')
-        @concurrency = positive_integer(raw.fetch('concurrency', 5), 'concurrency')
-        @retries = non_negative_integer(raw.fetch('retries', 1), 'retries')
+        @concurrency = Values.positive_integer(raw.fetch('concurrency', 5), 'concurrency')
+        @retries = Values.non_negative_integer(raw.fetch('retries', 1), 'retries')
         @user_agent = raw['user_agent']&.to_s
         @verbose = raw.fetch('verbose', false) == true
+        @request_options = read_request_options(raw)
+      end
+
+      def read_request_options(raw)
+        REQUEST_OPTIONS.select { |name, _| raw.key?(name) }.to_h do |name, (option, reader)|
+          [option, Values.public_send(reader, raw[name], name)]
+        end
       end
 
       def section(klass, value, name)
         return klass.new if value.nil?
 
-        self.class.invalid!(name, value, 'a set of options') unless value.is_a?(Hash)
+        Values.invalid!(name, value, 'a set of options') unless value.is_a?(Hash)
 
         options = value.transform_keys(&:to_sym)
-        self.class.known!(options, klass.members, name)
+        Values.known!(options, klass.members, name)
 
         klass.new(**options)
-      end
-
-      def positive_integer(value, name)
-        self.class.invalid!(name, value, 'a positive integer') unless value.is_a?(Integer) && value.positive?
-        value
-      end
-
-      def non_negative_integer(value, name)
-        self.class.invalid!(name, value, 'zero or a positive integer') unless value.is_a?(Integer) && !value.negative?
-        value
       end
     end
   end

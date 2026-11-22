@@ -12,4 +12,5 @@
 - [#11](https://github.com/dblock/jekyll-ruby-link-checker/pull/11): Add `LINK_CHECKER_CHANGED_FILES` and the `changed-files-only` workflow input, on by default, to only check the pages a pull request changes - [@dblock](https://github.com/dblock).
 - [#14](https://github.com/dblock/jekyll-ruby-link-checker/pull/14): Fix reporting redirects and a failed HEAD before GET as dead links - [@dblock](https://github.com/dblock).
 - [#15](https://github.com/dblock/jekyll-ruby-link-checker/pull/15): Upgrade to ruby-link-checker 0.6, report links blocked by bot protection as unverified without failing the build, and use ruby-link-checker's reasons - [@dblock](https://github.com/dblock).
+- [#16](https://github.com/dblock/jekyll-ruby-link-checker/pull/16): Add the `blocked`, `detect_challenges`, `timeout`, `connect_timeout`, `host_concurrency`, `host_interval`, `headers`, and `host_headers` options - [@dblock](https://github.com/dblock).
 - Your contribution here.

@@ -116,7 +116,8 @@ module Jekyll
           logger: @config.verbose? ? Jekyll.logger : Logger.new(IO::NULL),
           hydra: { max_concurrency: @config.concurrency },
           retries: @config.retries,
-          cache: @config.cache_options(@site.source)
+          cache: @config.cache_options(@site.source),
+          **@config.request_options
         }
         options[:user_agent] = @config.user_agent if @config.user_agent
         options

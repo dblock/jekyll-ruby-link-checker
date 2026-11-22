@@ -5,6 +5,7 @@ require 'typhoeus'
 require 'ruby-link-checker'
 
 require_relative 'jekyll-ruby-link-checker/version'
+require_relative 'jekyll-ruby-link-checker/values'
 require_relative 'jekyll-ruby-link-checker/configuration'
 require_relative 'jekyll-ruby-link-checker/internal_links'
 require_relative 'jekyll-ruby-link-checker/urls'

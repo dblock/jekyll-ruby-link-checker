@@ -284,6 +284,49 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     expect { build({ 'index.md' => page('[No HEAD](https://nohead.example.org/)') }) }.not_to raise_error
   end
 
+  it 'reports links blocked by bot protection as dead with blocked: false' do
+    stub_url('https://walled.example.org/', 403)
+
+    expect { build({ 'index.md' => page('[A](https://walled.example.org/)') }, link_checker: { 'blocked' => false }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{https://walled.example.org/ \(HTTP 403\)})
+  end
+
+  it 'reports challenges as dead with detect_challenges: false' do
+    Typhoeus.stub('https://challenge.example.org/').and_return(
+      Typhoeus::Response.new(code: 503, headers: { 'cf-mitigated' => 'challenge' }, body: '')
+    )
+
+    files = { 'index.md' => page('[A](https://challenge.example.org/)') }
+
+    expect { build(files, link_checker: { 'detect_challenges' => false }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, /Cloudflare challenge \(HTTP 503\)/)
+  end
+
+  it 'sends host headers only to their hosts' do
+    %w[https://npm.example.org/ https://other.example.org/ https://www.medium.example.org/].each do |url|
+      Typhoeus.stub(url) do |request|
+        headers = request.options[:headers]
+        Typhoeus::Response.new(code: headers['Accept'] == 'text/html' || headers['X'] == 'y' ? 200 : 404)
+      end
+    end
+    links = '[A](https://npm.example.org/) [B](https://other.example.org/) [C](https://www.medium.example.org/)'
+    host_headers = { 'npm.example.org' => { 'Accept' => 'text/html' }, '/medium\.example\.org\z/' => { 'X' => 'y' } }
+
+    expect { build({ 'index.md' => page(links) }, link_checker: { 'host_headers' => host_headers }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{\AFound 1 dead link:\nhttps://other.example.org/ })
+  end
+
+  it 'passes request options to ruby-link-checker' do
+    allow(LinkChecker::Typhoeus::Hydra::Checker).to receive(:new).and_call_original
+
+    build({ 'index.md' => page('[About](/about/)'), 'about.md' => about },
+          link_checker: { 'timeout' => '30s', 'connect_timeout' => 3, 'host_concurrency' => 2, 'host_interval' => 0.1 })
+
+    expect(LinkChecker::Typhoeus::Hydra::Checker).to have_received(:new).with(
+      hash_including(timeout: 30, connecttimeout: 3, max_concurrency_per_host: 2, min_host_interval: 0.1)
+    )
+  end
+
   it 'sends the configured user agent' do
     Typhoeus.stub('https://ok.example.org/') do |request|
       Typhoeus::Response.new(code: request.options[:headers]['User-Agent'] == 'Test Checker' ? 200 : 403)

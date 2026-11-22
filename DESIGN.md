@@ -7,7 +7,7 @@ This plugin checks the links in a Jekyll site while it builds and fails the buil
 The first version:
 
 - Collects every `<a href>` from the rendered content of HTML pages and documents.
-- Checks external links with [ruby-link-checker](https://github.com/dblock/ruby-link-checker) and its Typhoeus checker, with configurable concurrency, retries, and user agent.
+- Checks external links with [ruby-link-checker](https://github.com/dblock/ruby-link-checker) and its Typhoeus checker, with configurable concurrency, retries, and user agent, and ruby-link-checker's options for blocked statuses, challenge detection, timeouts, limits per host, and headers. Those options are only passed when they are set, so they keep ruby-link-checker's defaults, and their names describe the site (`host_concurrency`) rather than mirror ruby-link-checker's (`max_concurrency_per_host`). YAML can't hold a Ruby `Regexp`, so `host_headers` reads a host between slashes as a regular expression.
 - Checks internal links and anchors against the built site, following `jekyll-redirect-from` redirect pages. A path without an extension is a directory index or a page served without its `.html` extension, and relative links are resolved against the page that contains them.
 - Skips links with schemes other than `http` and `https`, and configured domains, URLs, and paths.
 - Reuses successful external checks for a configurable time with ruby-link-checker's persistent cache. Failures are never cached, so dead links are always checked again.

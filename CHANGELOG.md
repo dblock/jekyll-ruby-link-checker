@@ -17,4 +17,5 @@
 - [#19](https://github.com/dblock/jekyll-ruby-link-checker/pull/19): Add the `permanent_redirects` option to report links that moved permanently, with the URL to update them to - [@dblock](https://github.com/dblock).
 - [#20](https://github.com/dblock/jekyll-ruby-link-checker/pull/20): Keep the existing cache of a site at the repository root when switching to the reusable workflow, by caching the bare `cache-file` path - [@dblock](https://github.com/dblock).
 - [#21](https://github.com/dblock/jekyll-ruby-link-checker/pull/21): Simplify the documentation - [@dblock](https://github.com/dblock).
+- [#22](https://github.com/dblock/jekyll-ruby-link-checker/pull/22): Add a logo - [@dblock](https://github.com/dblock).
 - Your contribution here.

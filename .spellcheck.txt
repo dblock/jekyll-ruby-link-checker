@@ -2,6 +2,7 @@ APIs
 backoff
 Bundler
 CHANGELOG
+checkmark
 Cloudflare
 dblock
 Dependabot

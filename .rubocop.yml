@@ -1,0 +1,72 @@
+inherit_mode:
+  merge:
+    - Include
+    - Exclude
+
+AllCops:
+  TargetRubyVersion: 3.3
+  NewCops: enable
+  Include:
+    - '**/*.yml'
+    - '**/*.yaml'
+    - '.github/**/*.yml'
+    - '.rubocop.yml'
+  Exclude:
+    - 'vendor/**/*'
+    - 'coverage/**/*'
+    - 'pkg/**/*'
+
+plugins:
+  - rubocop-md
+  - rubocop-prose
+  - rubocop-rake
+  - rubocop-rspec
+  - rubocop-spellcheck
+  - rubocop-yaml
+
+# The YAML cops otherwise run on Ruby files and skip hidden workflow paths.
+YAML/Lint/InvalidSyntax:
+  Include:
+    - '**/*.yml'
+    - '**/*.yaml'
+    - '.github/**/*.yml'
+    - '.rubocop.yml'
+
+YAML/Lint/DuplicateKey:
+  Include:
+    - '**/*.yml'
+    - '**/*.yaml'
+    - '.github/**/*.yml'
+    - '.rubocop.yml'
+
+Markdown/HeadingCapitalization:
+  Enabled: true
+  Style: title_case
+
+# Gem entry files are named after the gem, and GitHub workflow files use dashes.
+Naming/FileName:
+  Exclude:
+    - 'lib/jekyll-ruby-link-checker.rb'
+    - '.github/workflows/danger-comment.yml'
+
+# Reusable workflow references are pinned to a full commit SHA on one line.
+Layout/LineLength:
+  Exclude:
+    - '.github/workflows/danger-comment.yml'
+
+# The license is kept as published.
+Prose/MaxLength:
+  Exclude:
+    - LICENSE.txt
+
+Spellcheck:
+  DictionaryFiles:
+    en:
+    - gem:rubocop-spellcheck/data/en/en.dic
+    - ".spellcheck.txt"
+
+Spellcheck/Spelling:
+  Exclude:
+    - LICENSE.txt
+  Ruby:
+    Strings: false

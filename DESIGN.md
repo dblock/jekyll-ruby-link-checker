@@ -47,6 +47,8 @@ Hooks in `hooks.rb` start a `Checker` before rendering when `LINK_CHECKER` is se
 
 Dead links fail the build with `DeadLinksError` unless `LINK_CHECKER_FAIL` is off, in which case they're logged as a warning; the report is the same either way. Reporting without failing lives in the gem rather than in the workflow, with `continue-on-error`, so a build that fails for another reason still fails. The workflow's `fail-on-dead-links` input sets it, and the job summary step adds a warning annotation when there are dead links.
 
+`LINK_CHECKER_CHANGED_FILES` lists the files a change touched, and the checker then only collects links from the pages and documents among them, matched by their source path. The whole site is still built, so links from changed pages to unchanged ones resolve. Static files are skipped, because the checker only reads links in pages, and any other changed file can change every page, so it falls back to checking all of them, as it does when nothing says what changed. The workflow lists changed files with `git diff HEAD^1 HEAD`: `actions/checkout` checks out the merge commit of a pull request, whose first parent is the base branch, so a checkout two commits deep holds exactly the pull request's change, without the GitHub API or the full history. Deleted and renamed files fall back to checking all pages, because unchanged pages may link to them.
+
 The build writes a Markdown report to `LINK_CHECKER_REPORT`, starting with an HTML comment that holds the number of dead links, so workflows don't parse prose. The workflow adds the report to the job summary and uploads it as an artifact of the run, even when the build fails, with the pull request number for pull requests.
 
 ## Publishing Results

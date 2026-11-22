@@ -35,8 +35,8 @@ module Jekyll
         @site = site
         @config = Configuration.new(site.config['link_checker'])
         @urls = Urls.new(site, @config.exclude)
-        @report = Report.new(verbose: @config.verbose?, file: @config.report_file(site.source),
-                             fail_on_dead_links: @config.fail_on_dead_links?)
+        @only = ChangedFiles.pages(site, @config.changed_files(site.source))
+        @report = new_report
         @links = Hash.new { |hash, url| hash[url] = Set.new }
       end
 
@@ -60,9 +60,16 @@ module Jekyll
 
       private
 
-      # Pages that opt out with `link_checker: false`, and outputs other than HTML, are not checked.
+      def new_report
+        Report.new(verbose: @config.verbose?, file: @config.report_file(@site.source),
+                   fail_on_dead_links: @config.fail_on_dead_links?, changed_pages: @only&.size)
+      end
+
+      # Pages that opt out with `link_checker: false`, outputs other than HTML, and, with LINK_CHECKER_CHANGED_FILES,
+      # pages that didn't change are not checked.
       def checked?(page)
-        page.data['link_checker'] != false && HTML_EXTENSIONS.include?(page.output_ext.to_s.downcase)
+        page.data['link_checker'] != false && HTML_EXTENSIONS.include?(page.output_ext.to_s.downcase) &&
+          (@only.nil? || @only.include?(page.relative_path))
       end
 
       def hrefs(page)

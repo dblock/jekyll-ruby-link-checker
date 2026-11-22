@@ -41,6 +41,12 @@ on:
           passes. A build that fails for another reason still fails.
         type: boolean
         default: true
+      changed-files-only:
+        description: >-
+          On pull requests, only check pages whose source changed, or all pages when a layout, an include, data,
+          configuration, or another file that isn't a page or a static file changed, or a file was deleted or renamed.
+        type: boolean
+        default: false
 
 # Jobs inherit the caller's permissions; this workflow only needs `contents: read`, so it can run on pull requests
 # from forks. Publish the report to a pull request comment or an issue with publish-report.yml.
@@ -56,6 +62,26 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
+        # A pull request checks out a merge commit; its first parent is the base, so two commits hold the change.
+        fetch-depth: ${{ inputs.changed-files-only && github.event_name == 'pull_request' && 2 || 1 }}
+    - name: List Changed Files
+      if: inputs.changed-files-only && github.event_name == 'pull_request'
+      run: |
+        set -euo pipefail
+        if ! git rev-parse --verify --quiet 'HEAD^2' > /dev/null; then
+          echo "HEAD isn't a pull request merge commit; checking all pages."
+          exit 0
+        fi
+        # Other pages may link to a deleted or renamed file, so check all pages.
+        if git -c core.quotepath=off diff --name-status --relative 'HEAD^1' HEAD | grep -q '^[DR]'; then
+          echo "Files were deleted or renamed; checking all pages."
+          exit 0
+        fi
+        changed="$RUNNER_TEMP/link-checker-changed-files.txt"
+        git -c core.quotepath=off diff --name-only --relative 'HEAD^1' HEAD > "$changed"
+        echo "Changed files in the site:"
+        cat "$changed"
+        echo "LINK_CHECKER_CHANGED_FILES=$changed" >> "$GITHUB_ENV"
     - name: Run Setup Command
       if: inputs.setup-command != ''
       env:

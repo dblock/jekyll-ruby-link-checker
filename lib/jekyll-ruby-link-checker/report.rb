@@ -15,11 +15,12 @@ module Jekyll
       MARKER = 'jekyll-ruby-link-checker dead links:'
 
       # Writes a Markdown report to `file`, when set, at the end of the build, and fails the build on dead links
-      # unless `fail_on_dead_links` is false.
-      def initialize(verbose:, file: nil, fail_on_dead_links: true)
+      # unless `fail_on_dead_links` is false. `changed_pages` counts the pages checked when only changed ones are.
+      def initialize(verbose:, file: nil, fail_on_dead_links: true, changed_pages: nil)
         @verbose = verbose
         @file = file
         @fail_on_dead_links = fail_on_dead_links
+        @changed_pages = changed_pages
         @counts = Hash.new(0)
         @failures = {}
       end
@@ -53,7 +54,7 @@ module Jekyll
 
       def summary
         "Checked #{@counts[:internal]} internal and #{@counts[:external]} external links " \
-          "(#{@counts[:cached]} cached), skipped #{@counts[:excluded]}."
+          "(#{@counts[:cached]} cached)#{scope}, skipped #{@counts[:excluded]}."
       end
 
       def markdown
@@ -71,6 +72,12 @@ module Jekyll
       end
 
       private
+
+      def scope
+        return '' unless @changed_pages
+
+        " on #{@changed_pages} changed page#{'s' unless @changed_pages == 1}"
+      end
 
       def write(file)
         FileUtils.mkdir_p(File.dirname(file))

@@ -20,6 +20,7 @@ jobs:
       setup-command: touch .setup-done
       build-command: test -f .setup-done && bundle exec jekyll build
       cache-key-prefix: integration-link-checker-
+      changed-files-only: true
 
   # A second upload under the same name would fail, so this also checks that `false` skips the upload.
   # Also adds a dead link, which only warns with `fail-on-dead-links: false`.

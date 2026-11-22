@@ -76,7 +76,7 @@ link_checker:
 | `user_agent`      | ruby-link-checker's | User agent sent with external checks.                                                                                   |
 | `verbose`         | `false`             | Log every link and its result, and ruby-link-checker's requests.                                                        |
 
-Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI, and `LINK_CHECKER_FAIL=0` to log dead links as a warning instead of failing the build.
+Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI, `LINK_CHECKER_FAIL=0` to log dead links as a warning instead of failing the build, and `LINK_CHECKER_CHANGED_FILES` to a file that lists changed files, one per line and relative to the site source, to only check the pages among them; a changed file that is neither a page nor a static file, such as a layout, checks all pages.
 
 ## Reusable Workflows
 
@@ -116,6 +116,7 @@ jobs:
 | `cache-file`         | `.cache/link-checker.json` | Cache file, relative to the site directory.                                                                          |
 | `cache-key-prefix`   | `link-checker-`            | Prefix of the GitHub Actions cache keys.                                                                             |
 | `report-artifact`    | `link-checker-report`      | Name of the artifact that holds the report of each run, or `'false'` to skip uploading it.                           |
+| `changed-files-only` | `false`                    | On pull requests, only check pages whose source changed.                                                             |
 | `fail-on-dead-links` | `true`                     | Fail the check on dead links; with `false`, dead links are reported with a warning and the check passes.             |
 
 To report dead links on pull requests without failing them, for example while the default branch has dead links of its own, pass an expression; `fail-on-dead-links` is a boolean, so it takes `true`, `false`, or an expression:
@@ -124,6 +125,8 @@ To report dead links on pull requests without failing them, for example while th
     with:
       fail-on-dead-links: ${{ github.event_name != 'pull_request' }}
 ```
+
+With `changed-files-only: true`, pull requests only check the pages and documents they change, so a pull request that adds a post checks that post's links rather than the whole site. Changed static files, such as images, need no check. A pull request that changes anything else in the site, such as a layout, an include, data, `_config.yml`, or the `Gemfile`, or that deletes or renames a file, which other pages may link to, checks all pages. Other runs always check all pages.
 
 The workflow inherits the caller's permissions and only needs `contents: read`. GitHub evicts caches that are not accessed for 7 days, so run the workflow at least that often, for example twice a week, to keep the cache.
 

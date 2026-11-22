@@ -91,6 +91,13 @@ module Jekyll
         file.empty? ? nil : File.expand_path(file, source)
       end
 
+      # LINK_CHECKER_CHANGED_FILES names a file that lists changed files, one per line, relative to the site source,
+      # to only check the pages that changed, for example in a pull request.
+      def changed_files(source)
+        file = ENV.fetch('LINK_CHECKER_CHANGED_FILES', '').strip
+        file.empty? ? nil : File.expand_path(file, source)
+      end
+
       # LINK_CHECKER_FAIL=0 reports dead links without failing the build, for example on pull requests.
       def fail_on_dead_links?
         !%w[0 false no off].include?(ENV.fetch('LINK_CHECKER_FAIL', '').strip.downcase)

@@ -329,6 +329,63 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
                       %r{\AFound 1 dead link:\nhttps://gone.example.org/ \(HTTP 404\), linked from index.md\z})
   end
 
+  context 'with links that redirect' do
+    let(:report) { File.join(dir, 'links.md') }
+    let(:files) { { 'index.md' => page('[Moved](https://moved.example.org/) [Temp](https://temp.example.org/)') } }
+
+    before do
+      Typhoeus.stub('https://moved.example.org/').and_return(
+        Typhoeus::Response.new(code: 301, headers: { 'Location' => 'https://new.example.org/' }, body: '')
+      )
+      Typhoeus.stub('https://temp.example.org/').and_return(
+        Typhoeus::Response.new(code: 302, headers: { 'Location' => 'https://new.example.org/' }, body: '')
+      )
+      stub_url('https://new.example.org/', 200)
+      allow(Jekyll.logger).to receive(:warn)
+    end
+
+    def build_redirects(link_checker)
+      build(files, link_checker: link_checker, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+    end
+
+    it 'reports links that moved permanently with permanent_redirects' do
+      expect { build_redirects('permanent_redirects' => true) }.not_to raise_error
+
+      expect(Jekyll.logger).to have_received(:warn).with(
+        'LinkChecker:',
+        "1 link moved permanently:\nhttps://moved.example.org/ to https://new.example.org/, linked from index.md"
+      )
+      expect(File.read(report)).to end_with(<<~MARKDOWN)
+        Checked 0 internal and 2 external links (0 cached), skipped 0. 1 link moved permanently.
+
+        No dead links.
+
+        ## Moved Permanently
+
+        These links work, but redirect permanently. Update them to link to where they moved.
+
+        | Link | Moved To | Linked From |
+        | --- | --- | --- |
+        | https://moved.example.org/ | https://new.example.org/ | index.md |
+      MARKDOWN
+    end
+
+    it 'reports them from the cache' do
+      cache = { 'file' => '.cache/links.json' }
+      build_redirects('cache' => cache)
+      build_redirects('cache' => cache, 'permanent_redirects' => true)
+
+      expect(File.read(report)).to include('(2 cached), skipped 0. 1 link moved permanently.')
+    end
+
+    it 'does not report them by default' do
+      build_redirects({})
+
+      expect(Jekyll.logger).not_to have_received(:warn).with('LinkChecker:', /moved permanently/)
+      expect(File.read(report)).not_to include('Moved Permanently')
+    end
+  end
+
   it 'falls back to GET when HEAD fails' do
     Typhoeus.stub('https://nohead.example.org/') do |request|
       Typhoeus::Response.new(code: request.options[:method] == :head ? 405 : 200, body: '')

@@ -62,7 +62,8 @@ module Jekyll
 
       def new_report
         Report.new(verbose: @config.verbose?, file: @config.report_file(@site.source),
-                   fail_on_dead_links: @config.fail_on_dead_links?, changed_pages: @only&.size)
+                   fail_on_dead_links: @config.fail_on_dead_links?, changed_pages: @only&.size,
+                   permanent_redirects: @config.permanent_redirects?)
       end
 
       # Pages that opt out with `link_checker: false`, outputs other than HTML, and, with LINK_CHECKER_CHANGED_FILES,

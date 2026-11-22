@@ -45,7 +45,7 @@ LinkChecker: Found 2 dead links:
 https://example.org/gone (HTTP 404), linked from about.md
 ```
 
-Many sites answer automated requests with HTTP 401, 403, 429, or 999, or with a Cloudflare challenge, even though the page exists. Those links are reported as unverified, with a warning and in their own section of the report, and don't fail the build. Rate-limited links are retried with exponential backoff per host first.
+Many sites answer automated requests with HTTP 401, 403, 429, or 999, or with a Cloudflare challenge, even though the page exists. Those links are reported as unverified, with a warning and in their own section of the report, and don't fail the build. Rate-limited links are retried with exponential backoff per host first. With `permanent_redirects: true`, links that work but redirect permanently are also listed, under `## Moved Permanently` in the report, with the URL they moved to.
 
 Links with other schemes, such as `mailto:`, aren't checked. A page or document opts out with `link_checker: false` in its front matter.
 
@@ -68,6 +68,7 @@ link_checker:
   retries: 1
   user_agent: My Site Link Checker
   verbose: false
+  permanent_redirects: false
   blocked: [401, 403, 429, 999]
   detect_challenges: true
   timeout: 60s
@@ -83,27 +84,28 @@ link_checker:
       Cookie: consent=1
 ```
 
-| Option              | Default                | Description                                                                                                                                                                             |
-| ---                 | ---                    | ---                                                                                                                                                                                     |
-| `cache.file`        | none                   | Cache file for successful external checks, relative to the site source. Add it to `exclude` and `.gitignore`.                                                                           |
-| `cache.ttl`         | `30d`                  | How long a successful check is reused: seconds, or a number with `s`, `m`, `h`, `d`, or `w`. Failures are never cached.                                                                 |
-| `cache.blocked_ttl` | none                   | How long an unverified check is reused, so sites behind bot protection aren't requested on every build. Without it, unverified links are checked every time.                            |
-| `cache.prune`       | `false`                | Remove entries of links that are no longer checked when every page is checked, so the cache doesn't keep links removed from the site. Builds that only check changed pages never prune. |
-| `exclude.domains`   | `[]`                   | Hosts whose links, including subdomains, are not checked.                                                                                                                               |
-| `exclude.urls`      | `[]`                   | Exact URLs that are not checked.                                                                                                                                                        |
-| `exclude.paths`     | `[]`                   | Regular expressions matched against links, such as `^/tags/`.                                                                                                                           |
-| `concurrency`       | `5`                    | Number of external links checked at the same time.                                                                                                                                      |
-| `retries`           | `1`                    | Number of retries for a failed external check.                                                                                                                                          |
-| `user_agent`        | ruby-link-checker's    | User agent sent with external checks.                                                                                                                                                   |
-| `verbose`           | `false`                | Log every link and its result, and ruby-link-checker's requests.                                                                                                                        |
-| `blocked`           | `[401, 403, 429, 999]` | Final HTTP statuses of external links reported as unverified rather than dead; `false` reports them as dead.                                                                            |
-| `detect_challenges` | `true`                 | Also report links with a bot challenge, such as a challenge from Cloudflare, as unverified, whatever their status.                                                                      |
-| `timeout`           | `60s`                  | Time limit for each external request.                                                                                                                                                   |
-| `connect_timeout`   | `10s`                  | Time limit for connecting to an external host.                                                                                                                                          |
-| `host_concurrency`  | unlimited              | Number of requests in flight to one host, so many links to one site don't arrive as a burst.                                                                                            |
-| `host_interval`     | `0`                    | Seconds between the starts of requests to one host: a number, which can be a fraction, or a duration such as `2s`.                                                                      |
-| `headers`           | none                   | Headers sent with every external request.                                                                                                                                               |
-| `host_headers`      | none                   | Headers sent only to a host, by exact name or a regular expression between slashes, such as `/(\A\|\.)medium\.com\z/`, and never to the hosts it redirects to.                          |
+| Option                | Default                | Description                                                                                                                                                                             |
+| ---                   | ---                    | ---                                                                                                                                                                                     |
+| `cache.file`          | none                   | Cache file for successful external checks, relative to the site source. Add it to `exclude` and `.gitignore`.                                                                           |
+| `cache.ttl`           | `30d`                  | How long a successful check is reused: seconds, or a number with `s`, `m`, `h`, `d`, or `w`. Failures are never cached.                                                                 |
+| `cache.blocked_ttl`   | none                   | How long an unverified check is reused, so sites behind bot protection aren't requested on every build. Without it, unverified links are checked every time.                            |
+| `cache.prune`         | `false`                | Remove entries of links that are no longer checked when every page is checked, so the cache doesn't keep links removed from the site. Builds that only check changed pages never prune. |
+| `exclude.domains`     | `[]`                   | Hosts whose links, including subdomains, are not checked.                                                                                                                               |
+| `exclude.urls`        | `[]`                   | Exact URLs that are not checked.                                                                                                                                                        |
+| `exclude.paths`       | `[]`                   | Regular expressions matched against links, such as `^/tags/`.                                                                                                                           |
+| `concurrency`         | `5`                    | Number of external links checked at the same time.                                                                                                                                      |
+| `retries`             | `1`                    | Number of retries for a failed external check.                                                                                                                                          |
+| `user_agent`          | ruby-link-checker's    | User agent sent with external checks.                                                                                                                                                   |
+| `verbose`             | `false`                | Log every link and its result, and ruby-link-checker's requests.                                                                                                                        |
+| `permanent_redirects` | `false`                | Also warn about, and report, working links that redirect permanently (301 or 308), with the URL to update them to. They don't fail the build.                                           |
+| `blocked`             | `[401, 403, 429, 999]` | Final HTTP statuses of external links reported as unverified rather than dead; `false` reports them as dead.                                                                            |
+| `detect_challenges`   | `true`                 | Also report links with a bot challenge, such as a challenge from Cloudflare, as unverified, whatever their status.                                                                      |
+| `timeout`             | `60s`                  | Time limit for each external request.                                                                                                                                                   |
+| `connect_timeout`     | `10s`                  | Time limit for connecting to an external host.                                                                                                                                          |
+| `host_concurrency`    | unlimited              | Number of requests in flight to one host, so many links to one site don't arrive as a burst.                                                                                            |
+| `host_interval`       | `0`                    | Seconds between the starts of requests to one host: a number, which can be a fraction, or a duration such as `2s`.                                                                      |
+| `headers`             | none                   | Headers sent with every external request.                                                                                                                                               |
+| `host_headers`        | none                   | Headers sent only to a host, by exact name or a regular expression between slashes, such as `/(\A\|\.)medium\.com\z/`, and never to the hosts it redirects to.                          |
 
 The options from `blocked` on are passed to ruby-link-checker, and default to its defaults when they are not set; see its [documentation](https://github.com/dblock/ruby-link-checker#options). Rate-limited links are retried with exponential backoff per host. Unknown options fail the build with the list of valid options. Set `LINK_CHECKER_CACHE` to a file to use instead of `cache.file`, `LINK_CHECKER_REPORT` to a file for a Markdown report of the summary and the dead links, for example in CI, `LINK_CHECKER_FAIL=0` to log dead links as a warning instead of failing the build, and `LINK_CHECKER_CHANGED_FILES` to a file that lists changed files, one per line and relative to the site source, to only check the pages among them; a changed file that is neither a page nor a static file, such as a layout, checks all pages.
 

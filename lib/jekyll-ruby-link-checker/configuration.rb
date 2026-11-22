@@ -40,7 +40,8 @@ module Jekyll
         'host_headers' => %i[host_headers host_headers]
       }.freeze
 
-      OPTIONS = (%w[cache exclude concurrency retries user_agent verbose] + REQUEST_OPTIONS.keys).freeze
+      OPTIONS = (%w[cache exclude concurrency retries user_agent verbose permanent_redirects] + REQUEST_OPTIONS.keys)
+                .freeze
 
       attr_reader :cache, :exclude, :concurrency, :retries, :user_agent, :request_options
 
@@ -53,6 +54,10 @@ module Jekyll
 
       def verbose?
         @verbose
+      end
+
+      def permanent_redirects?
+        @permanent_redirects
       end
 
       # LINK_CHECKER_CACHE overrides the configured cache file, for example in a CI workflow. Only a `full` check
@@ -95,6 +100,7 @@ module Jekyll
         @retries = Values.non_negative_integer(raw.fetch('retries', 1), 'retries')
         @user_agent = raw['user_agent']&.to_s
         @verbose = raw.fetch('verbose', false) == true
+        @permanent_redirects = Values.boolean(raw.fetch('permanent_redirects', false), 'permanent_redirects')
         @request_options = read_request_options(raw)
       end
 

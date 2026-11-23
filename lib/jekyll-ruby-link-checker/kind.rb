@@ -19,6 +19,17 @@ module Jekyll
         name == 'links'
       end
 
+      # The names of the tags that its selectors match, such as `img`.
+      def tag_names
+        tags.map { |selector, _names| selector.tag }.uniq
+      end
+
+      # Kinds are told apart by their name, which is unique in a configuration; hashing every selector instead would
+      # make counting references slow.
+      def hash = name.hash
+
+      def eql?(other) = other.is_a?(Kind) && name == other.name
+
       # Whether references of this kind to other sites, or to the site itself, are checked.
       def checks?(external_url)
         external_url ? external : internal

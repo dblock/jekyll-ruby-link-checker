@@ -9,6 +9,7 @@
 - [#37](https://github.com/dblock/jekyll-ruby-link-checker/pull/37): List dead references of a kind as warnings with `fail: false`, exclude references of one kind with `exclude`, and skip anchors with `links.anchors: false` - [@dblock](https://github.com/dblock).
 - [#38](https://github.com/dblock/jekyll-ruby-link-checker/pull/38): Check video, audio, and iframes, and kinds of references of your own, such as lazy-loaded images - [@dblock](https://github.com/dblock).
 - [#39](https://github.com/dblock/jekyll-ruby-link-checker/pull/39): Add `rake benchmark`, which times the plugin on a generated site, or on an existing one - [@dblock](https://github.com/dblock).
+- [#40](https://github.com/dblock/jekyll-ruby-link-checker/pull/40): Collect references three times faster, and only find anchors in `id` and `name` attributes - [@dblock](https://github.com/dblock).
 - Your contribution here.
 
 ## 0.1.0 (2026/11/23)

@@ -44,6 +44,7 @@ module Jekyll
         return unless checked?(page)
 
         @report.page(page.relative_path, title: page.data['title'], url: page_url(page))
+        @ids = nil
         sources.each(page) { |location, kind, href| reference(page, location, kind, href) }
       end
 
@@ -95,7 +96,7 @@ module Jekyll
 
       # An anchor in a layout is reported once, from the layout, rather than for every page.
       def check_anchor(page, kind, href, location)
-        return if InternalLinks.anchor?(page.output.to_s, href[1..])
+        return if (@ids ||= InternalLinks.ids(page.output.to_s)).include?(CGI.unescape(href[1..]))
 
         @report.fail(location == page.relative_path ? "#{page.url}#{href}" : href, location, 'anchor not found',
                      warn: !kind.fail)

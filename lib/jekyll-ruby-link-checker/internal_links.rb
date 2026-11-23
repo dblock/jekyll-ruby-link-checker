@@ -9,12 +9,15 @@ module Jekyll
       MAX_REDIRECTS = 10
       REDIRECT_TITLE = '<title>Redirecting'
       HREF = /<a\s[^>]*?href=(["'])(.*?)\1/im
+      ELEMENT_WITH_ID = /<[a-z][a-z0-9-]*\s[^>]*?(?:id|name)\s*=[^>]*>/im
+      ANCHOR_ATTRIBUTES = %w[id name].freeze
 
       # `localize` turns absolute links to the site itself into paths.
       def initialize(destination, localize: ->(url) { url })
         @destination = destination
         @localize = localize
         @contents = {}
+        @ids = {}.compare_by_identity
       end
 
       # Returns nil when the link works, or a reason it doesn't.
@@ -24,17 +27,24 @@ module Jekyll
         content = read(path)
         return 'page not found' if content.nil?
         return follow(content, fragment, redirects) if content.include?(REDIRECT_TITLE)
-        return nil if fragment.nil? || self.class.anchor?(content, fragment)
+        return nil if fragment.nil? || ids(content).include?(CGI.unescape(fragment))
 
         "anchor ##{fragment} not found"
       end
 
-      def self.anchor?(content, fragment)
-        id = Regexp.escape(CGI.unescape(fragment))
-        content.match?(/<[a-z0-9-]+\s[^>]*?(?:id|name)=(["'])#{id}\1/i)
+      # The `id` and `name` attributes of the elements of a page, which anchors link to. A page is read once, rather
+      # than once for each anchor.
+      def self.ids(content)
+        content.scan(ELEMENT_WITH_ID).each_with_object(Set.new) do |element, ids|
+          References.attributes(element).each { |name, value| ids << value if ANCHOR_ATTRIBUTES.include?(name) }
+        end
       end
 
       private
+
+      def ids(content)
+        @ids[content] ||= self.class.ids(content)
+      end
 
       # Redirects to other sites are left unchecked here, and a redirect loop stops after MAX_REDIRECTS.
       def follow(content, fragment, redirects)

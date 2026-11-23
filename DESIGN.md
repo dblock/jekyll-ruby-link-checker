@@ -18,7 +18,11 @@ Every reasonable kind is on by default, so a new site checks everything it refer
 
 ## Layouts
 
-Layouts and includes repeat on every page, so the checker splits what a page references by where it comes from, in `Sources`. It scans the page's content, which it reports from the page, and its whole output, less the references of the content, counted once each, which it reports from the page's layout. A broken link in navigation is then reported once, from `_layouts/default.html`, rather than from hundreds of pages. The final HTML doesn't say which nested layout or include a reference came from, so the location is the page's own layout, which is where to start looking. `layouts` is a top-level option rather than a kind under `check`, because it says where references come from, and applies to every kind.
+Layouts and includes repeat on every page, so the checker splits what a page references by where it comes from, in `Sources`. It scans the page's content, which it reports from the page, and the rest of its output, which it reports from the page's layout. The output usually contains the content as it is, so the rest is what comes before and after it; when a layout changes the content, for example with a filter, the rest is the whole output, less the references of the content, counted once each. A broken link in navigation is then reported once, from `_layouts/default.html`, rather than from hundreds of pages. The final HTML doesn't say which nested layout or include a reference came from, so the location is the page's own layout, which is where to start looking. `layouts` is a top-level option rather than a kind under `check`, because it says where references come from, and applies to every kind.
+
+## Performance
+
+Collecting references runs while every page renders, so it's what the plugin adds to every build; `rake benchmark` measures it. `References` only reads the tags that some kind's selectors name, which skips the attributes of most elements, `Sources` scans each part of a page once, and the ids that anchors link to are read once per page. Kinds are told apart by name, because hashing a `Data` with its selectors is slow when counting references.
 
 ## Checking
 

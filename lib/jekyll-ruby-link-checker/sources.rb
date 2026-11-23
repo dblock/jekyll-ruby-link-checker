@@ -14,22 +14,36 @@ module Jekyll
 
       # Yields the location, the kind, and the URL of each reference of the page.
       def each(page, &)
-        content = @references.scan(page.content.to_s)
-        content.each { |kind, href| yield page.relative_path, kind, href }
+        content = page.content.to_s
+        scan(content, page.relative_path, &)
         layout = @layouts && @site.layouts[page.data['layout']]
-        each_in_layout(page, layout.relative_path.delete_prefix('/'), content, &) if layout
+        each_in_layout(page.output.to_s, content, layout.relative_path.delete_prefix('/'), &) if layout
       end
 
       private
 
-      # The output contains the content, so the references of the content are left out once each.
-      def each_in_layout(page, location, content)
-        remaining = content.tally
-        @references.scan(page.output.to_s).each do |reference|
+      # The output usually contains the content as it is, so only what's around it is scanned again. A layout can
+      # change the content, for example with a filter, and then the references of the content are left out of the
+      # whole output once each.
+      def each_in_layout(output, content, location, &)
+        start = output.index(content)
+        return each_not_in(output, content, location, &) unless start
+
+        scan(output[0, start], location, &)
+        scan(output[(start + content.length)..], location, &)
+      end
+
+      def each_not_in(output, content, location)
+        remaining = @references.scan(content).tally
+        @references.scan(output).each do |reference|
           next remaining[reference] -= 1 if remaining[reference].to_i.positive?
 
           yield location, *reference
         end
+      end
+
+      def scan(html, location)
+        @references.scan(html).each { |kind, href| yield location, kind, href }
       end
     end
   end

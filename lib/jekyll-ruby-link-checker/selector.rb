@@ -8,7 +8,7 @@ module Jekyll
       PATTERN = /\A([a-z][a-z0-9-]*)((?:\[[^\]]*\])*)(?::not\(([^)]*)\))?\z/i
       CONDITION = /\A\[\s*([a-z][\w:-]*)\s*~=\s*(["']?)([^"'\]\s]+)\2\s*\]\z/i
 
-      attr_reader :text
+      attr_reader :text, :tag
 
       # Raises an error naming `name` when `text` isn't a selector.
       def self.parse(text, name)

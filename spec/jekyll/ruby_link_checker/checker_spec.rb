@@ -43,6 +43,19 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     }
   end
 
+  it 'finds anchors in id and name attributes, quoted or not, but not in other attributes such as data-id' do
+    html = '<h2 class="title" data-id="data" id=here>H</h2> <a name=\'named\'>N</a> ' \
+           '<a href="#here">1</a> <a href="#named">2</a> <a href="#data">3</a> <a href="/other.html#data">4</a>'
+    files = { 'index.html' => page(html), 'other.html' => page('<p data-id="data">Other</p>') }
+
+    expect { build(files) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+      expect(error.message).to eq(
+        "Found 2 dead links:\n/#data (anchor not found), linked from index.html\n" \
+        '/other.html#data (anchor #data not found), linked from index.html'
+      )
+    }
+  end
+
   it 'fails on dead external links with the HTTP status' do
     stub_url('https://dead.example.org/', 404)
 
@@ -756,6 +769,18 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
       expect(File.read(report))
         .to include("- [/missing-nav/](<https://www.example.com/missing-nav/>) (page not found)\n  " \
                     "- \\_layouts/default.html\n")
+    end
+
+    it 'tells references of the content from those of the layout when the layout changes the content' do
+      files['_layouts/default.html'] = '<nav><a href="/missing-nav/">Missing</a></nav>' \
+                                       '{{ content | replace: ">Gone<", ">Lost<" }}'
+
+      expect { build(files) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+        expect(error.message).to eq(
+          "Found 2 dead links:\n/gone/ (page not found), linked from index.md\n" \
+          '/missing-nav/ (page not found), linked from _layouts/default.html'
+        )
+      }
     end
 
     it 'only checks the content with layouts: false' do

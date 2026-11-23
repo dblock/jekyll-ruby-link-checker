@@ -63,7 +63,7 @@ module Jekyll
       # listed in the report without a title or a link.
       def reference(page, location, kind, href)
         @report.page(location) unless location == page.relative_path
-        return check_anchor(page, href, location) if kind.link? && href.start_with?('#')
+        return (check_anchor(page, kind, href, location) if kind.anchors) if kind.link? && href.start_with?('#')
 
         add(location, kind, @urls.resolve(page.url, href))
       end
@@ -94,51 +94,41 @@ module Jekyll
       end
 
       # An anchor in a layout is reported once, from the layout, rather than for every page.
-      def check_anchor(page, href, location)
+      def check_anchor(page, kind, href, location)
         return if InternalLinks.anchor?(page.output.to_s, href[1..])
 
-        @report.fail(location == page.relative_path ? "#{page.url}#{href}" : href, location, 'anchor not found')
+        @report.fail(location == page.relative_path ? "#{page.url}#{href}" : href, location, 'anchor not found',
+                     warn: !kind.fail)
       end
 
       def queue(href, locations, internal, external)
+        kind = @kinds[href]
         url = @urls.localize(href)
-        return @report.count(:excluded) if @urls.excluded?(url) || !@kinds[href].checks?(Urls.external?(url))
+        return @report.count(:excluded) if @urls.excluded?(url, kind.exclude) || !kind.checks?(Urls.external?(url))
 
         if Urls.external?(url)
           @report.count(:external)
-          external.check(url, locations: locations, kind: @kinds[href].label)
+          external.check(url, locations: locations, kind: kind.label, warn: !kind.fail)
         else
-          check_internal(href, url, locations, internal)
+          check_internal(kind, href, url, locations, internal)
         end
       end
 
-      # A missing image is reported as such, rather than as a missing page.
-      def check_internal(href, url, locations, internal)
+      # A missing image is reported as such, rather than as a missing page. Without `anchors`, only the page is checked.
+      def check_internal(kind, href, url, locations, internal)
         @report.count(:internal)
-        reason = internal.check(url)
-        reason = "#{@kinds[href].label} not found" if reason == 'page not found' && !@kinds[href].link?
+        reason = internal.check(kind.anchors ? url : url.split('#', 2).first)
+        reason = "#{kind.label} not found" if reason == 'page not found' && !kind.link?
         @report.log(href, reason || 'OK')
-        @report.fail(href, locations, reason) if reason
+        @report.fail(href, locations, reason, warn: !kind.fail) if reason
       end
 
       def external_checker
-        checker = LinkChecker::Typhoeus::Hydra::Checker.new(**checker_options)
+        checker = LinkChecker::Typhoeus::Hydra::Checker.new(**@config.checker_options(@site.source, full: @only.nil?))
         # `complete` is published once per link with its final result, unlike `result`, which is published for every
         # attempt, including each redirect. Cache hits are reported when a link is queued, before the checker runs.
         checker.on(:complete) { |result| @report.record(result) }
         checker
-      end
-
-      def checker_options
-        options = {
-          logger: @config.verbose? ? Jekyll.logger : Logger.new(IO::NULL),
-          hydra: { max_concurrency: @config.concurrency },
-          retries: @config.retries,
-          cache: @config.cache_options(@site.source, full: @only.nil?),
-          **@config.request_options
-        }
-        options[:user_agent] = @config.user_agent if @config.user_agent
-        options
       end
     end
   end

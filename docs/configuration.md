@@ -12,10 +12,16 @@ link_checker:
   check:                           # what to check; each kind is true, false, or options (default: everything)
     defaults:                      # options for every kind that doesn't set its own
       external: true               # check references to other sites (default: true)
-    links: true                    # <a>, <area>, and <link> tags other than stylesheets
+      exclude:                     # added to the top-level exclude, for every kind
+        domains: [cdn.example.org]
+    links:                         # <a>, <area>, and <link> tags other than stylesheets
+      anchors: true                # check #fragments (default: true)
     images:
       internal: true               # check images on the site (default: true)
       external: false              # don't fetch images from other sites
+      fail: false                  # list missing images as warnings, without failing the build (default: true)
+      exclude:                     # added to the top-level exclude, for images only
+        paths: ['^/images/old/']
     scripts: true                  # <script src>
     stylesheets: true              # <link rel="stylesheet">
   layouts: true                    # also check what layouts and includes reference, such as navigation (default: true)
@@ -62,8 +68,13 @@ With `LINK_CHECKER_CHANGED_FILES`, a change to a layout, an include, or anything
 
 Each kind under `check` is `true`, which checks it with its defaults, `false`, which doesn't check it, or a set of options:
 
-- `internal` checks references to the site itself, and `external` references to other sites; both default to `true`, or to what `check.defaults` sets.
+- `internal` checks references to the site itself, and `external` references to other sites.
+- `fail: false` lists dead references of the kind as warnings, in the log and in a section of the report, without failing the build or counting them as dead links.
+- `exclude` takes the same lists as the top-level `exclude`, and adds them to it for the kind.
 - `tags` says where the kind is found, as selectors and the attributes that hold URLs, and replaces the default.
+- `anchors: false`, for links only, checks the pages that links point to, but not their `#fragments`.
+
+`check.defaults` sets `internal`, `external`, `fail`, and `exclude` for every kind. A kind's own `internal`, `external`, and `fail` win over the defaults, and its `exclude` adds to theirs. Every option defaults to `true`, and there are no exclusions besides the top-level ones.
 
 These are the kinds and the default `tags` of each:
 

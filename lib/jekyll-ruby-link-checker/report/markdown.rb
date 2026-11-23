@@ -10,6 +10,7 @@ module Jekyll
         MARKER = 'jekyll-ruby-link-checker dead links:'
         UNVERIFIED = 'Bot protection blocked these checks, so these links may work. Check them in a browser.'
         MOVED = 'These links work, but redirect permanently. Update them to link to where they moved.'
+        WARNINGS = 'These links are dead, but are set not to fail the build, with `fail: false`.'
         GUIDE = 'See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).'
         # Pages listed under a link before the rest are collapsed.
         PAGES_SHOWN = 3
@@ -19,15 +20,23 @@ module Jekyll
         def markdown
           lines = ["<!-- #{MARKER} #{@failures.size} -->", '', summary, '']
           lines += @failures.empty? ? ['No dead links.'] : section(@failures, 'Dead Link')
-          lines += ['', *unverified_section] unless @unverified.empty?
-          lines += ['', *section(@moved, 'Link', MOVED, moved: true)] unless @moved.empty?
-          exclusions = exclusions_section
-          lines += ['', *exclusions] unless exclusions.empty?
-          lines += ['', GUIDE] unless [@failures, @unverified, @moved].all?(&:empty?)
+          lines += other_sections
+          lines += ['', GUIDE] unless [@failures, @warnings, @unverified, @moved].all?(&:empty?)
           "#{lines.join("\n")}\n"
         end
 
         private
+
+        # Warnings, unverified and moved links, and suggested exclusions, each after a blank line, when there are any.
+        def other_sections
+          sections = [
+            (section(@warnings, 'Warning', WARNINGS) unless @warnings.empty?),
+            (unverified_section unless @unverified.empty?),
+            (section(@moved, 'Link', MOVED, moved: true) unless @moved.empty?),
+            exclusions_section
+          ]
+          sections.compact.reject(&:empty?).flat_map { |lines| ['', *lines] }
+        end
 
         def section(links, noun, note = nil, moved: false)
           title = moved ? "#{plural(links.size, noun)} Moved Permanently" : plural(links.size, noun)

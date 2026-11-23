@@ -10,6 +10,10 @@ It checks the references of each kind under `check`, links, images, scripts, and
 
 It doesn't work with other site generators, or fix links. [html-proofer](https://github.com/gjtorikian/html-proofer) checks built HTML more broadly.
 
+## Kinds
+
+Each `Kind` carries its own options, so the checker never asks the configuration what to do with a reference. A URL keeps the kind it was first found as, so a URL both linked and shown as an image is checked once. `fail: false` routes dead references to warnings, which are logged and listed in the report, but not counted on its first line, which workflows read as the number of dead links. A kind's `exclude` lists are added to the top-level ones in `Urls#excluded?`, after the default exclusions of `check.defaults`, because exclusions only ever narrow what's checked; the other options of a kind replace the defaults instead. `Exclude` is shared by the top level and by kinds, and takes the name of its section for errors, such as `check.images.exclude.paths`.
+
 ## Layouts
 
 Layouts and includes repeat on every page, so the checker splits what a page references by where it comes from, in `Sources`. It scans the page's content, which it reports from the page, and its whole output, less the references of the content, counted once each, which it reports from the page's layout. A broken link in navigation is then reported once, from `_layouts/default.html`, rather than from hundreds of pages. The final HTML doesn't say which nested layout or include a reference came from, so the location is the page's own layout, which is where to start looking. `layouts` is a top-level option rather than a kind under `check`, because it says where references come from, and applies to every kind.

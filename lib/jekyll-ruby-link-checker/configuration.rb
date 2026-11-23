@@ -17,17 +17,6 @@ module Jekyll
         end
       end
 
-      # Links that are never checked: external hosts and their subdomains, exact URLs, and path patterns.
-      Exclude = Data.define(:domains, :urls, :paths) do
-        def initialize(domains: [], urls: [], paths: [])
-          super(
-            domains: Values.list(domains, 'exclude.domains').map(&:downcase),
-            urls: Values.list(urls, 'exclude.urls').map { |url| Values.string_or_pattern(url, 'exclude.urls') },
-            paths: Values.list(paths, 'exclude.paths').map { |path| Values.pattern(path, 'exclude.paths') }
-          )
-        end
-      end
-
       # Options passed to ruby-link-checker, with its name and a reader; unset options keep its defaults.
       REQUEST_OPTIONS = {
         'blocked' => %i[blocked_status_codes status_codes],
@@ -63,6 +52,19 @@ module Jekyll
 
       def permanent_redirects?
         @permanent_redirects
+      end
+
+      # Options of ruby-link-checker's checker; `full` is a check of every page, see `cache_options`.
+      def checker_options(source, full:)
+        options = {
+          logger: verbose? ? Jekyll.logger : Logger.new(IO::NULL),
+          hydra: { max_concurrency: concurrency },
+          retries: retries,
+          cache: cache_options(source, full: full),
+          **request_options
+        }
+        options[:user_agent] = user_agent if user_agent
+        options
       end
 
       # LINK_CHECKER_CACHE overrides the configured cache file, for example in a CI workflow. Only a `full` check

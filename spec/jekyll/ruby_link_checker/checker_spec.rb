@@ -587,6 +587,61 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     end
   end
 
+  context 'with options of a kind' do
+    let(:report) { File.join(dir, 'links.md') }
+    let(:html) do
+      '<img src="/images/missing.png"> <img src="https://cdn.example.org/gone.png"> <a href="/missing/">M</a> ' \
+        '<a href="#nowhere">N</a> <a href="/about/#nowhere">A</a>'
+    end
+    let(:files) { { 'index.html' => page(html), 'about.html' => page('About') } }
+
+    before { stub_url('https://cdn.example.org/gone.png', 404) }
+
+    def build_report(check)
+      build(files, link_checker: { 'check' => check }, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+    end
+
+    it 'lists dead references of a kind with fail: false as warnings, and only fails on the others' do
+      expect { build_report('images' => { 'fail' => false }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{\AFound 3 dead links:\n/#nowhere })
+      expect(File.read(report)).to include(
+        "<!-- jekyll-ruby-link-checker dead links: 3 -->\n\nChecked 3 internal and 1 external links (0 cached), " \
+        "skipped 0. 2 warnings.\n",
+        "### 2 Warnings\n\nThese links are dead, but are set not to fail the build, with `fail: false`.\n\n" \
+        "- [/images/missing.png](<https://www.example.com/images/missing.png>) (image not found)\n  " \
+        "- [index.html](<https://www.example.com/>)\n" \
+        "- [cdn.example.org/gone.png](<https://cdn.example.org/gone.png>) (image: HTTP 404)\n"
+      )
+    end
+
+    it 'passes when every kind with dead references has fail: false' do
+      expect { build_report('defaults' => { 'fail' => false }) }.not_to raise_error
+      expect(File.read(report)).to include('### 5 Warnings')
+    end
+
+    it 'skips anchors with links: { anchors: false }' do
+      expect { build_report('links' => { 'anchors' => false }, 'images' => false) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{\AFound 1 dead link:\n/missing/ })
+    end
+
+    it 'adds the exclusions of a kind, and of every kind, to the others' do
+      check = { 'defaults' => { 'exclude' => { 'domains' => ['cdn.example.org'] } },
+                'images' => { 'exclude' => { 'paths' => ['^/images/'] } },
+                'links' => { 'anchors' => false } }
+
+      expect { build_report(check) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+        expect(error.message).to eq("Found 1 dead link:\n/missing/ (page not found), linked from index.html")
+      }
+      expect(File.read(report)).to include('skipped 2.')
+    end
+
+    it 'does not exclude links with the exclusions of images' do
+      check = { 'images' => { 'exclude' => { 'paths' => ['^/missing/'] } }, 'links' => { 'anchors' => false } }
+
+      expect { build_report(check) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, /\AFound 3 dead links/)
+    end
+  end
+
   context 'with scripts and stylesheets' do
     let(:html) do
       '<link rel="stylesheet" href="/css/missing.css"> <link rel="alternate stylesheet" href="/css/dark.css"> ' \

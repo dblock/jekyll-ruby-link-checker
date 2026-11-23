@@ -16,7 +16,7 @@ module Jekyll
       include Markdown
       include Exclusions
 
-      attr_reader :counts, :failures, :unverified, :moved
+      attr_reader :counts, :failures, :warnings, :unverified, :moved
 
       # Writes a Markdown report to `file`, when set, at the end of the build, and fails the build on dead links
       # unless `fail_on_dead_links` is false. `changed_pages` counts the pages checked when only changed ones are.
@@ -28,10 +28,7 @@ module Jekyll
         @changed_pages = changed_pages
         @permanent_redirects = permanent_redirects
         @counts = Hash.new(0)
-        @failures = {}
-        @unverified = {}
-        @moved = {}
-        @pages = {}
+        @failures, @warnings, @unverified, @moved, @pages = Array.new(5) { {} }
       end
 
       # With the site's URL, the report links to the site's pages and its dead links.
@@ -48,8 +45,9 @@ module Jekyll
         @counts[kind] += 1
       end
 
-      def fail(url, locations, reason)
-        add(@failures, url, locations, reason)
+      # With `warn`, a dead link is listed as a warning, and doesn't fail the build.
+      def fail(url, locations, reason, warn: false)
+        add(warn ? @warnings : @failures, url, locations, reason)
       end
 
       # Records the final result of an external link from ruby-link-checker. Links blocked by bot protection may work,
@@ -59,9 +57,7 @@ module Jekyll
         count(:cached) if result.cached?
         return success(url, result) if result.success?
 
-        reason = with_kind(result.reason, result.options[:kind])
-        log(url, result.blocked? ? "#{reason}, unverified" : reason)
-        add(result.blocked? ? @unverified : @failures, url, result.options[:locations], reason)
+        dead(url, result, with_kind(result.reason, result.options[:kind]))
       end
 
       def log(url, status)
@@ -81,6 +77,13 @@ module Jekyll
 
       private
 
+      def dead(url, result, reason)
+        log(url, result.blocked? ? "#{reason}, unverified" : reason)
+        return add(@unverified, url, result.options[:locations], reason) if result.blocked?
+
+        fail(url, result.options[:locations], reason, warn: result.options[:warn])
+      end
+
       def add(links, url, locations, reason)
         links[url] ||= { reason: reason, locations: Set.new }
         links[url][:locations].merge(Array(locations))
@@ -98,8 +101,9 @@ module Jekyll
         add(@moved, url, result.options[:locations], result.result_uri.to_s)
       end
 
-      # Unverified and moved links don't fail the build.
+      # Warnings, and unverified and moved links, don't fail the build.
       def warn_unverified_and_moved
+        Jekyll.logger.warn('LinkChecker:', warnings_message) unless @warnings.empty?
         Jekyll.logger.warn('LinkChecker:', unverified_message) unless @unverified.empty?
         Jekyll.logger.warn('LinkChecker:', moved_message) unless @moved.empty?
       end

@@ -3,8 +3,9 @@
 module Jekyll
   module RubyLinkChecker
     # A kind of reference, such as links or images: the elements and attributes that hold it, its `label` in reports,
-    # and whether references to the site itself (`internal`) and to other sites (`external`) are checked.
-    Kind = Data.define(:name, :label, :tags, :internal, :external) do
+    # whether references to the site itself (`internal`) and to other sites (`external`) are checked, whether dead
+    # ones `fail` the build, its own `exclude` lists, and, for links, whether `anchors` are checked.
+    Kind = Data.define(:name, :label, :tags, :internal, :external, :fail, :exclude, :anchors) do
       # Returns the URLs that an element with a lowercase `tag` and `attributes`, by lowercase name, holds.
       def urls(tag, attributes)
         tags.flat_map do |selector, names|

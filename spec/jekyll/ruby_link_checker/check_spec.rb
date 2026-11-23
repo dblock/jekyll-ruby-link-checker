@@ -22,6 +22,10 @@ RSpec.describe Jekyll::RubyLinkChecker::Check do
     expect(kinds('images' => true).keys).to eq(%w[links images scripts stylesheets])
   end
 
+  it 'fails on every kind, checks anchors, and has no exclusions of its own by default' do
+    expect(kinds(nil).values).to all(have_attributes(fail: true, anchors: true, exclude: []))
+  end
+
   it 'applies defaults to every kind that does not set its own' do
     checked = kinds('defaults' => { 'external' => false }, 'links' => { 'external' => true })
 
@@ -42,14 +46,21 @@ RSpec.describe Jekyll::RubyLinkChecker::Check do
       { 'videos' => true } =>
         'Unknown link_checker.check option: videos. Valid options: defaults, links, images, scripts, stylesheets',
       { 'images' => { 'fetch' => true } } =>
-        'Unknown link_checker.check.images option: fetch. Valid options: tags, internal, external',
+        'Unknown link_checker.check.images option: fetch. Valid options: tags, internal, external, fail, exclude',
       { 'defaults' => { 'tags' => {} } } => 'Unknown link_checker.check.defaults option: tags.',
       { 'images' => 'no' } => 'link_checker.check.images must be true, false, or a set of options',
       { 'images' => { 'external' => 'no' } } => 'link_checker.check.images.external must be true or false',
       { 'images' => { 'tags' => [] } } => 'link_checker.check.images.tags must be a set of selectors',
       { 'images' => { 'tags' => { 'img[' => 'src' } } } => 'link_checker.check.images.tags must be a selector',
       { 'images' => { 'tags' => { 'img' => ['', 'src'] } } } =>
-        'link_checker.check.images.tags.img must be a list of attribute names'
+        'link_checker.check.images.tags.img must be a list of attribute names',
+      { 'images' => { 'anchors' => false } } => 'Unknown link_checker.check.images option: anchors.',
+      { 'links' => { 'anchors' => 'no' } } => 'link_checker.check.links.anchors must be true or false',
+      { 'images' => { 'fail' => 'no' } } => 'link_checker.check.images.fail must be true or false',
+      { 'images' => { 'exclude' => [] } } => 'link_checker.check.images.exclude must be a set of options',
+      { 'defaults' => { 'exclude' => { 'hosts' => [] } } } =>
+        'Unknown link_checker.check.defaults.exclude option: hosts. Valid options: domains, urls, paths',
+      { 'images' => { 'exclude' => { 'paths' => ['('] } } } => 'link_checker.check.images.exclude.paths must be'
     }.each { |raw, message| expect(error(raw)).to start_with(message) }
   end
 end

@@ -38,25 +38,29 @@ module Jekyll
         match[1].empty? ? '/' : match[1]
       end
 
-      # Links with other schemes, such as `mailto:`, and configured exclusions are not checked.
-      def excluded?(url)
+      # Links with other schemes, such as `mailto:`, and configured exclusions, including those of a kind of
+      # reference, are not checked.
+      def excluded?(url, exclusions = [])
         return true if url.match?(SCHEME) && !self.class.external?(url)
-        return true if excluded_url?(url)
-        return true if @exclude.paths.any? { |pattern| pattern.match?(url) }
 
-        self.class.external?(url) && excluded_domain?(url)
+        [@exclude, *exclusions].any? { |exclude| excluded_by?(url, exclude) }
       end
 
       private
 
-      # Excluded URLs are exact, or regular expressions.
-      def excluded_url?(url)
-        @exclude.urls.any? { |excluded| excluded.is_a?(Regexp) ? excluded.match?(url) : excluded == url }
+      def excluded_by?(url, exclude)
+        excluded_url?(url, exclude) || exclude.paths.any? { |pattern| pattern.match?(url) } ||
+          (self.class.external?(url) && excluded_domain?(url, exclude))
       end
 
-      def excluded_domain?(url)
+      # Excluded URLs are exact, or regular expressions.
+      def excluded_url?(url, exclude)
+        exclude.urls.any? { |excluded| excluded.is_a?(Regexp) ? excluded.match?(url) : excluded == url }
+      end
+
+      def excluded_domain?(url, exclude)
         host = URI.parse(url).host.to_s.downcase
-        @exclude.domains.any? { |domain| host == domain || host.end_with?(".#{domain}") }
+        exclude.domains.any? { |domain| host == domain || host.end_with?(".#{domain}") }
       rescue URI::InvalidURIError
         false
       end

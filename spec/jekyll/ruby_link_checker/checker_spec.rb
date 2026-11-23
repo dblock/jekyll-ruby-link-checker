@@ -347,7 +347,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     it 'lists them in the report' do
       build_blocked
 
-      expect(File.read(report)).to eq(<<~MARKDOWN)
+      expect(File.read(report)).to start_with(<<~MARKDOWN)
         <!-- jekyll-ruby-link-checker dead links: 0 -->
 
         Checked 0 internal and 3 external links (0 cached), skipped 0. Couldn't verify 3 links.
@@ -368,9 +368,35 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
           - [walled.example.org/](<https://walled.example.org/>)
 
         </details>
-
-        See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).
       MARKDOWN
+    end
+
+    it 'suggests excluding sites with several unverified links, other unverified links, and sites that failed' do
+      stub_url('https://walled.example.org/a', 403)
+      stub_url('https://walled.example.org/b', 401)
+      stub_url('https://broken.example.org/', 500)
+      stub_url('https://gone.example.org/', 404)
+      stub_url("https://x.example.org/it's", 999)
+      links = '[A](https://walled.example.org/a) [B](https://walled.example.org/b) ' \
+              '[C](https://linkedin.example.org/) ' \
+              '[D](https://broken.example.org/) [E](https://gone.example.org/) [F](/missing/) ' \
+              "[G](https://x.example.org/it's)"
+      expect { build({ 'index.md' => page(links) }, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+
+      yaml = File.read(report)[/```yaml\n(.*?)```/m, 1]
+      expect(yaml).to eq(<<~YAML)
+        link_checker:
+          exclude:
+            domains:
+              - walled.example.org # 2 unverified links
+            urls:
+              - 'https://broken.example.org/' # HTTP 500
+              - 'https://linkedin.example.org/' # HTTP 999
+              - 'https://x.example.org/it''s' # HTTP 999
+      YAML
+      excluded = Jekyll::RubyLinkChecker::Configuration.new(YAML.safe_load(yaml)['link_checker']).exclude
+      expect(excluded.urls).to include("https://x.example.org/it's")
     end
 
     it 'groups them by site, with the most links first, and lists the reasons of each site' do

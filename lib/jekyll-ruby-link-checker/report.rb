@@ -3,6 +3,7 @@
 require 'fileutils'
 require_relative 'report/formatting'
 require_relative 'report/markdown'
+require_relative 'report/exclusions'
 
 module Jekyll
   module RubyLinkChecker
@@ -13,6 +14,7 @@ module Jekyll
     class Report
       include Formatting
       include Markdown
+      include Exclusions
 
       attr_reader :counts, :failures, :unverified, :moved
 

@@ -36,4 +36,4 @@ With `permanent_redirects: true`, the report lists links that work but redirect 
 
 ## Excluding Links
 
-Some links can't be checked, such as links that need you to sign in, or searches that sites only answer for people. Exclude them in `_config.yml` rather than removing them: `exclude.urls` takes exact URLs and regular expressions between slashes, `exclude.domains` takes sites, and `exclude.paths` takes regular expressions. See [Configuration](configuration.md).
+Some links can't be checked, such as links that need you to sign in, or searches that sites only answer for people. Exclude them in `_config.yml` rather than removing them. The report suggests the exclusions to add, under Suggested Exclusions, for the unverified links and the links to sites that didn't answer properly; check those links in a browser first. In `_config.yml`, `exclude.urls` takes exact URLs and regular expressions between slashes, `exclude.domains` takes sites, and `exclude.paths` takes regular expressions. See [Configuration](configuration.md).

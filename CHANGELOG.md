@@ -23,4 +23,5 @@
 - [#25](https://github.com/dblock/jekyll-ruby-link-checker/pull/25): Group unverified links by site in the report, and collapse them - [@dblock](https://github.com/dblock).
 - [#27](https://github.com/dblock/jekyll-ruby-link-checker/pull/27): Move the usage, configuration, and GitHub Actions documentation to `docs/`, add a guide to fixing links, linked from the report, and update the workflow version pins in the documentation on release - [@dblock](https://github.com/dblock).
 - [#28](https://github.com/dblock/jekyll-ruby-link-checker/pull/28): Add the check as an action, `action.yml`, for GitHub Marketplace - [@dblock](https://github.com/dblock).
+- [#29](https://github.com/dblock/jekyll-ruby-link-checker/pull/29): Suggest `exclude` settings for unverified links and sites that didn't answer properly in the report - [@dblock](https://github.com/dblock).
 - Your contribution here.

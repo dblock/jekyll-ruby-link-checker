@@ -21,6 +21,8 @@ module Jekyll
           lines += @failures.empty? ? ['No dead links.'] : section(@failures, 'Dead Link')
           lines += ['', *unverified_section] unless @unverified.empty?
           lines += ['', *section(@moved, 'Link', MOVED, moved: true)] unless @moved.empty?
+          exclusions = exclusions_section
+          lines += ['', *exclusions] unless exclusions.empty?
           lines += ['', GUIDE] unless [@failures, @unverified, @moved].all?(&:empty?)
           "#{lines.join("\n")}\n"
         end

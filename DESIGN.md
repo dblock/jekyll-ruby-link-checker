@@ -4,11 +4,15 @@ This plugin checks the links in a Jekyll site while it builds, and fails the bui
 
 ## Scope
 
-It checks the references of each kind under `check`, links, images, scripts, and stylesheets, in the rendered pages and documents of a site. References to the site itself are checked against the built files, including anchors and `jekyll-redirect-from` redirects. References to other sites are checked with [ruby-link-checker](https://github.com/dblock/ruby-link-checker), and share its cache. Images go through the same resolution, exclusions, and cache as links, so `data:` images are skipped like links with other schemes, and each reference keeps its kind, so reports say `image not found` or `image: HTTP 404`.
+It checks the references of each kind under `check`, links, images, scripts, and stylesheets, in the rendered pages and documents of a site, and, unless `layouts` is off, in their layouts and includes. References to the site itself are checked against the built files, including anchors and `jekyll-redirect-from` redirects. References to other sites are checked with [ruby-link-checker](https://github.com/dblock/ruby-link-checker), and share its cache. Images go through the same resolution, exclusions, and cache as links, so `data:` images are skipped like links with other schemes, and each reference keeps its kind, so reports say `image not found` or `image: HTTP 404`.
 
 `Check::KINDS` defines each built-in kind by its label in reports and its `tags`: selectors, and the attributes of matching elements that hold URLs. The configuration uses the same shape, so a site can replace the `tags` of a kind, and the built-in kinds are defaults rather than special cases. `Selector` supports a tag, words that attributes must contain (`[rel~=stylesheet]`), and `:not(...)` of those, which is enough to tell stylesheets from other `<link>` tags without hard-coded rules; anything else is rejected rather than half-supported. `References` reads each element's attributes by exact name, quoted or not, so `data-src` is never mistaken for `src`, and asks each kind for the URLs it holds. Browsers remove tabs and newlines from URLs, so the plugin does too, after splitting `srcset` into its candidates.
 
 It doesn't work with other site generators, or fix links. [html-proofer](https://github.com/gjtorikian/html-proofer) checks built HTML more broadly.
+
+## Layouts
+
+Layouts and includes repeat on every page, so the checker splits what a page references by where it comes from, in `Sources`. It scans the page's content, which it reports from the page, and its whole output, less the references of the content, counted once each, which it reports from the page's layout. A broken link in navigation is then reported once, from `_layouts/default.html`, rather than from hundreds of pages. The final HTML doesn't say which nested layout or include a reference came from, so the location is the page's own layout, which is where to start looking. `layouts` is a top-level option rather than a kind under `check`, because it says where references come from, and applies to every kind.
 
 ## Checking
 

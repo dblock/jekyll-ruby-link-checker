@@ -5,6 +5,7 @@
 - [#31](https://github.com/dblock/jekyll-ruby-link-checker/pull/31): Add screenshots of reports from code.dblock.org to the documentation - [@dblock](https://github.com/dblock).
 - [#32](https://github.com/dblock/jekyll-ruby-link-checker/pull/32): Check images, in `img src` and `srcset`, and choose what's checked, where, and inside or outside the site, with `check` - [@dblock](https://github.com/dblock).
 - [#33](https://github.com/dblock/jekyll-ruby-link-checker/pull/33): Check scripts and stylesheets - [@dblock](https://github.com/dblock).
+- [#35](https://github.com/dblock/jekyll-ruby-link-checker/pull/35): Check what layouts and includes reference, such as navigation, once per layout, with the `layouts` option to turn it off - [@dblock](https://github.com/dblock).
 - Your contribution here.
 
 ## 0.1.0 (2026/11/23)

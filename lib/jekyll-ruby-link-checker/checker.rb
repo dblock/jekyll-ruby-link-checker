@@ -44,7 +44,7 @@ module Jekyll
         return unless checked?(page)
 
         @report.page(page.relative_path, title: page.data['title'], url: page_url(page))
-        references.scan(page.content.to_s).each { |kind, href| reference(page, kind, href) }
+        sources.each(page) { |location, kind, href| reference(page, location, kind, href) }
       end
 
       def verify
@@ -57,16 +57,20 @@ module Jekyll
 
       private
 
-      def references = @references ||= References.new(@config.check.kinds)
+      def sources = @sources ||= Sources.new(@site, References.new(@config.check.kinds), layouts: @config.layouts?)
 
-      # Anchors on the same page are checked against it, and anything else once the site is written.
-      def reference(page, kind, href)
-        kind.link? && href.start_with?('#') ? check_anchor(page, href) : add(page, kind, @urls.resolve(page.url, href))
+      # Anchors on the same page are checked against it, and anything else once the site is written. A layout is
+      # listed in the report without a title or a link.
+      def reference(page, location, kind, href)
+        @report.page(location) unless location == page.relative_path
+        return check_anchor(page, href, location) if kind.link? && href.start_with?('#')
+
+        add(location, kind, @urls.resolve(page.url, href))
       end
 
       # A URL that is both linked and shown as an image keeps the kind it was first found as.
-      def add(page, kind, url)
-        @links[url] << page.relative_path
+      def add(location, kind, url)
+        @links[url] << location
         @kinds[url] ||= kind
       end
 
@@ -83,25 +87,22 @@ module Jekyll
           (@only.nil? || @only.include?(page.relative_path))
       end
 
-      def site_url
-        @site.config['url'].to_s.empty? ? nil : @site.config['url']
-      end
+      def site_url = @site.config['url'].to_s.empty? ? nil : @site.config['url']
 
       def page_url(page)
         "#{site_url}#{@site.baseurl}#{page.url}" if site_url
       end
 
-      def check_anchor(page, href)
+      # An anchor in a layout is reported once, from the layout, rather than for every page.
+      def check_anchor(page, href, location)
         return if InternalLinks.anchor?(page.output.to_s, href[1..])
 
-        @report.fail("#{page.url}#{href}", page.relative_path, 'anchor not found')
+        @report.fail(location == page.relative_path ? "#{page.url}#{href}" : href, location, 'anchor not found')
       end
 
       def queue(href, locations, internal, external)
         url = @urls.localize(href)
-        return @report.count(:excluded) if @urls.excluded?(url)
-
-        return @report.count(:excluded) unless @kinds[href].checks?(Urls.external?(url))
+        return @report.count(:excluded) if @urls.excluded?(url) || !@kinds[href].checks?(Urls.external?(url))
 
         if Urls.external?(url)
           @report.count(:external)

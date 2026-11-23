@@ -9,7 +9,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
     defaults = config(nil)
 
     expect(defaults).to have_attributes(concurrency: 5, retries: 1, user_agent: nil, verbose?: false,
-                                        permanent_redirects?: false)
+                                        permanent_redirects?: false, layouts?: true)
     expect(defaults.cache).to have_attributes(file: nil, ttl: 30 * 86_400, blocked_ttl: nil, prune: false)
     expect(defaults.exclude).to have_attributes(domains: [], urls: [], paths: [])
   end
@@ -89,7 +89,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
   it 'rejects unknown options with the valid ones' do
     expect { config('excludes' => {}) }.to raise_error(
       Jekyll::Errors::InvalidConfigurationError,
-      'Unknown link_checker option: excludes. Valid options: cache, exclude, check, concurrency, retries, ' \
+      'Unknown link_checker option: excludes. Valid options: cache, exclude, check, layouts, concurrency, retries, ' \
       'user_agent, verbose, permanent_redirects, blocked, detect_challenges, timeout, connect_timeout, ' \
       'host_concurrency, host_interval, headers, host_headers'
     )
@@ -114,7 +114,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
       { 'retries' => -1 },
       { 'cache' => { 'blocked_ttl' => 0 } },
       { 'cache' => { 'prune' => 'yes' } },
-      { 'permanent_redirects' => 'yes' }
+      { 'permanent_redirects' => 'yes' },
+      { 'layouts' => 'no' }
     ].each do |raw|
       expect { config(raw) }.to raise_error(Jekyll::Errors::InvalidConfigurationError, /link_checker/)
     end

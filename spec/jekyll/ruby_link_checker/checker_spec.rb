@@ -623,6 +623,47 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     end
   end
 
+  context 'with layouts' do
+    let(:files) do
+      {
+        '_layouts/default.html' => '<html><head><link rel="stylesheet" href="/css/missing.css"></head><body><nav>' \
+                                   '<a href="/about/">About</a> <a href="/missing-nav/">Missing</a> ' \
+                                   '<a href="#top">Top</a></nav>{{ content }}{% include footer.html %}</body></html>',
+        '_includes/footer.html' => '<a href="/missing-footer/">Footer</a>',
+        'index.md' => "---\nlayout: default\ntitle: Home\n---\n[About](/about/) [Gone](/gone/)\n",
+        'about.md' => "---\nlayout: default\ntitle: About\npermalink: /about/\n---\nAbout us.\n"
+      }
+    end
+
+    it 'reports what layouts and includes reference once, from the layout, and the rest from the page' do
+      expect { build(files) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+        expect(error.message).to eq(
+          "Found 5 dead links:\n" \
+          "#top (anchor not found), linked from _layouts/default.html\n" \
+          "/css/missing.css (stylesheet not found), linked from _layouts/default.html\n" \
+          "/gone/ (page not found), linked from index.md\n" \
+          "/missing-footer/ (page not found), linked from _layouts/default.html\n" \
+          '/missing-nav/ (page not found), linked from _layouts/default.html'
+        )
+      }
+    end
+
+    it 'lists the layout without a link in the report' do
+      report = File.join(dir, 'links.md')
+      expect { build(files, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+
+      expect(File.read(report))
+        .to include("- [/missing-nav/](<https://www.example.com/missing-nav/>) (page not found)\n  " \
+                    "- \\_layouts/default.html\n")
+    end
+
+    it 'only checks the content with layouts: false' do
+      expect { build(files, link_checker: { 'layouts' => false }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{\AFound 1 dead link:\n/gone/ })
+    end
+  end
+
   it 'reports links blocked by bot protection as dead with blocked: false' do
     stub_url('https://walled.example.org/', 403)
 

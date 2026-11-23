@@ -40,7 +40,7 @@ module Jekyll
         'host_headers' => %i[host_headers host_headers]
       }.freeze
 
-      OPTIONS = (%w[cache exclude check concurrency retries user_agent verbose permanent_redirects] +
+      OPTIONS = (%w[cache exclude check layouts concurrency retries user_agent verbose permanent_redirects] +
                  REQUEST_OPTIONS.keys)
                 .freeze
 
@@ -55,6 +55,10 @@ module Jekyll
 
       def verbose?
         @verbose
+      end
+
+      def layouts?
+        @layouts
       end
 
       def permanent_redirects?
@@ -100,6 +104,7 @@ module Jekyll
         @retries = Values.non_negative_integer(raw.fetch('retries', 1), 'retries')
         @user_agent = raw['user_agent']&.to_s
         @verbose = raw.fetch('verbose', false) == true
+        @layouts = Values.boolean(raw.fetch('layouts', true), 'layouts')
         @permanent_redirects = Values.boolean(raw.fetch('permanent_redirects', false), 'permanent_redirects')
         @request_options = read_request_options(raw)
       end

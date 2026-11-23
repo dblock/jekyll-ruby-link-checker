@@ -18,6 +18,7 @@ link_checker:
       external: false              # don't fetch images from other sites
     scripts: true                  # <script src>
     stylesheets: true              # <link rel="stylesheet">
+  layouts: true                    # also check what layouts and includes reference, such as navigation (default: true)
   exclude:
     domains: [twitter.com]         # sites never to check, including their subdomains
     urls:                          # exact URLs, or /regular expressions/

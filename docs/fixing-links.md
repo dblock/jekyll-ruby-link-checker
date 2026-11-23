@@ -1,14 +1,16 @@
 # Fixing Links
 
-This guide explains what to do with each kind of link in a link checker report. Each link in the report shows a reason, such as `HTTP 404` or `Cloudflare challenge (HTTP 403)`, and the pages that link to it.
+This guide explains what to do with each kind of link in a link checker report. Each link in the report shows a reason, such as `HTTP 404` or `Cloudflare challenge (HTTP 403)`, and the pages that link to it. The reason of anything other than a link says what it is, such as `image not found` or `script: HTTP 404`; fix those the same way.
+
+A link reported from a layout, such as `_layouts/default.html`, is in the layout or in one of its includes, such as the navigation or the footer, so fix it there, once, for every page.
 
 ## Dead Links
 
-Dead links fail the build, so fix or remove them.
+Dead links fail the build, so fix or remove them. Dead references of a kind set to `fail: false`, such as `images: { fail: false }`, are listed as warnings instead, and don't fail the build; fix them when you can.
 
 ### Page Not Found and Anchor Not Found
 
-These are links to your own site. Either the link has a typo, or you renamed or removed the page or the heading it points to. Fix the link, or, if the page moved, add the old path to the page's `redirect_from` with [jekyll-redirect-from](https://github.com/jekyll/jekyll-redirect-from), so that links from other sites keep working too. For a missing anchor, link to the heading's new `id`, which you can find by inspecting the page in a browser.
+These are links to your own site. Either the link has a typo, or you renamed or removed the page or the heading it points to. A missing image, script, or stylesheet, such as `image not found`, means the file isn't in the built site: fix its path, or add the file back. Fix the link, or, if the page moved, add the old path to the page's `redirect_from` with [jekyll-redirect-from](https://github.com/jekyll/jekyll-redirect-from), so that links from other sites keep working too. For a missing anchor, link to the heading's new `id`, which you can find by inspecting the page in a browser.
 
 ### Not Found or Gone
 

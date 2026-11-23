@@ -53,22 +53,17 @@ link_checker:
       Cookie: consent=1
 ```
 
-An entry of `exclude.urls` between slashes is a regular expression, because YAML can't hold one; any other entry is an exact URL. Patterns in `exclude.paths` are matched against every link: links to your site as paths, such as `/tags/ruby/`, and links to other sites as full URLs, so `'^https://github\.com/issues'` also works there. A duration is a number of seconds, or a number followed by `s`, `m`, `h`, `d`, or `w`. Dead links are never remembered, so they're checked again on every build. Pruning only happens when every page is checked. The options from `blocked` down are passed to ruby-link-checker; see its [documentation](https://github.com/dblock/ruby-link-checker#options) for details. Misspelled options fail the build with the list of valid ones.
+Misspelled options fail the build with the list of valid ones.
 
-A few environment variables change how a build checks links, mostly for CI:
+An entry of `exclude.urls` between slashes is a regular expression, because YAML can't hold one; any other entry is an exact URL. Patterns in `exclude.paths` are matched against links to your site as paths, such as `/tags/ruby/`, and against links to other sites as full URLs, such as `'^https://github\.com/issues'`.
 
-```sh
-LINK_CHECKER_CACHE=path/to/cache.json # use this cache file instead of cache.file
-LINK_CHECKER_REPORT=report.md         # also write a report in Markdown
-LINK_CHECKER_FAIL=0                   # warn about dead links instead of failing the build
-LINK_CHECKER_CHANGED_FILES=files.txt  # only check the pages listed in this file, one per line
-```
+A duration is a number of seconds, or a number followed by `s`, `m`, `h`, `d`, or `w`. Dead links are never remembered, so they're checked again on every build. Pruning only happens when every page is checked.
 
-With `LINK_CHECKER_CHANGED_FILES`, a change to a layout, an include, or anything else that isn't a page or an image checks every page.
+The options from `blocked` down are passed to ruby-link-checker; see its [documentation](https://github.com/dblock/ruby-link-checker#options).
 
 ## What Is Checked
 
-Each kind under `check` is `true`, which checks it with its defaults, `false`, which doesn't check it, or a set of options:
+Each kind under `check` is `true`, which checks it with the defaults, `false`, which doesn't check it, or a set of options:
 
 - `internal` checks references to the site itself, and `external` references to other sites.
 - `fail: false` lists dead references of the kind as warnings, in the log and in a section of the report, without failing the build or counting them as dead links.
@@ -76,7 +71,7 @@ Each kind under `check` is `true`, which checks it with its defaults, `false`, w
 - `tags` says where the kind is found, as selectors and the attributes that hold URLs, and replaces the default.
 - `anchors: false`, for links only, checks the pages that links point to, but not their `#fragments`.
 
-`check.defaults` sets `internal`, `external`, `fail`, and `exclude` for every kind. A kind's own `internal`, `external`, and `fail` win over the defaults, and its `exclude` adds to theirs. Every option defaults to `true`, and there are no exclusions besides the top-level ones.
+`internal`, `external`, `fail`, and `anchors` default to `true`. `check.defaults` changes `internal`, `external`, `fail`, and `exclude` for every kind; a kind's own options win, except `exclude`, which adds to the defaults.
 
 These are the kinds and the default `tags` of each:
 
@@ -133,3 +128,16 @@ link_checker:
 ```
 
 A misspelled kind, such as `image`, doesn't have `tags`, so it fails the build with the list of built-in kinds.
+
+## Environment Variables
+
+These change how a build checks links, mostly in CI:
+
+```sh
+LINK_CHECKER_CACHE=path/to/cache.json # use this cache file instead of cache.file
+LINK_CHECKER_REPORT=report.md         # also write a report in Markdown
+LINK_CHECKER_FAIL=0                   # warn about dead links instead of failing the build
+LINK_CHECKER_CHANGED_FILES=files.txt  # only check the pages listed in this file, one per line
+```
+
+With `LINK_CHECKER_CHANGED_FILES`, a change to a layout, an include, or anything else that isn't a page or an image checks every page.

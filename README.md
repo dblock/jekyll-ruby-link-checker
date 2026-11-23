@@ -4,7 +4,19 @@
 
 [![Test](https://github.com/dblock/jekyll-ruby-link-checker/actions/workflows/test.yml/badge.svg)](https://github.com/dblock/jekyll-ruby-link-checker/actions/workflows/test.yml) [![Lint](https://github.com/dblock/jekyll-ruby-link-checker/actions/workflows/lint.yml/badge.svg)](https://github.com/dblock/jekyll-ruby-link-checker/actions/workflows/lint.yml) [![Package](https://github.com/dblock/jekyll-ruby-link-checker/actions/workflows/package.yml/badge.svg)](https://github.com/dblock/jekyll-ruby-link-checker/actions/workflows/package.yml) [![Coverage Status](https://coveralls.io/repos/github/dblock/jekyll-ruby-link-checker/badge.svg?branch=master)](https://coveralls.io/github/dblock/jekyll-ruby-link-checker?branch=master)
 
-A Jekyll plugin that checks the links in your site while it builds, and fails the build when a link is dead. It uses [ruby-link-checker](https://github.com/dblock/ruby-link-checker) for external links and remembers the ones that worked, so later builds are fast. It also comes with GitHub Actions workflows that check links on every push and pull request.
+A Jekyll plugin that checks the links, images, and other references of your site while it builds, and fails the build when one is dead. It comes with GitHub Actions workflows that check links on every push and pull request.
+
+## Features
+
+- Checks links to pages of your site, anchors such as `#usage`, relative links, and links to other sites.
+- Also checks images, including `srcset` and `<picture>`, scripts, stylesheets, icons, video, audio, and iframes, all on by default.
+- Checks what layouts and includes reference, such as navigation, and reports a broken one once, from the layout, rather than from every page.
+- Follows `jekyll-redirect-from` redirects, and checks other sites with [ruby-link-checker](https://github.com/dblock/ruby-link-checker), concurrently, with retries.
+- Remembers links that worked in a cache, so later builds only check what's new.
+- Reports links blocked by bot protection, such as Cloudflare challenges, as unverified, rather than as dead.
+- Lets you choose what's checked, find references in tags of your own, exclude sites, URLs, and paths, and list some kinds as warnings rather than fail the build.
+- Writes a Markdown report that suggests exclusions for links whose results change from one run to the next.
+- In pull requests, only checks the pages they change, and comments with the dead links; on your default branch, keeps an issue of dead links up to date.
 
 ## Installation
 
@@ -55,6 +67,8 @@ jobs:
 ```
 
 A run fails when it finds dead links, and lists them in its summary. Fix them, push, and repeat until the run passes.
+
+To also comment on pull requests with their dead links, and keep an issue of the dead links on your default branch up to date, add this workflow:
 
 ```yaml
 # .github/workflows/publish-link-checker-report.yml

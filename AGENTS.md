@@ -1,6 +1,6 @@
 # Working on `jekyll-ruby-link-checker`
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, commands, tests, and PR rules, and [DESIGN.md](DESIGN.md) for the design. This project is a Jekyll plugin that checks a site's links during the build, plus a reusable GitHub Actions workflow that keeps the link cache between runs. It is not a general-purpose link checker; external checks belong in [ruby-link-checker](https://github.com/dblock/ruby-link-checker).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, commands, tests, and PR rules, and [DESIGN.md](DESIGN.md) for the design. This project is a Jekyll plugin that checks a site's links, images, and other references during the build, plus reusable GitHub Actions workflows and an action that check links on every push and pull request, and publish the results. It is not a general-purpose link checker; external checks belong in [ruby-link-checker](https://github.com/dblock/ruby-link-checker).
 
 ## Rules to Keep
 
@@ -9,6 +9,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, commands, tests, and PR rules
 - Keep checking off unless `LINK_CHECKER` is set, so ordinary builds and `jekyll serve` stay fast.
 - Never cache failures or errors; dead links must be checked again on every run.
 - Reject unknown configuration options with an error that lists the valid ones.
+- Define kinds of references as default `tags` in `Check::KINDS`, the same shape that sites configure, rather than as special cases in code.
+- Keep collecting references fast, because it runs while every page renders; run `bundle exec rake benchmark` before and after changes to it.
 - Test against real fixture sites built with Jekyll. Do not make network requests in specs; stub Typhoeus.
 - Keep the reusable workflow saving the cache when the build fails, and keep `spec/fixtures/site` checked by the Integration workflow.
 - Keep the steps of `action.yml` and of the check job of `check-links.yml` the same; `spec/workflows/action_spec.rb` compares them.

@@ -59,8 +59,9 @@ module Jekyll
         count(:cached) if result.cached?
         return success(url, result) if result.success?
 
-        log(url, result.blocked? ? "#{result.reason}, unverified" : result.reason)
-        add(result.blocked? ? @unverified : @failures, url, result.options[:locations], result.reason)
+        reason = with_kind(result.reason, result.options[:kind])
+        log(url, result.blocked? ? "#{reason}, unverified" : reason)
+        add(result.blocked? ? @unverified : @failures, url, result.options[:locations], reason)
       end
 
       def log(url, status)
@@ -83,6 +84,11 @@ module Jekyll
       def add(links, url, locations, reason)
         links[url] ||= { reason: reason, locations: Set.new }
         links[url][:locations].merge(Array(locations))
+      end
+
+      # Says what kind of reference failed, unless it's a link, such as `image: HTTP 404`.
+      def with_kind(reason, kind)
+        kind.nil? || kind == 'link' ? reason : "#{kind}: #{reason}"
       end
 
       def success(url, result)

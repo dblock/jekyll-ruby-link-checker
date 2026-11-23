@@ -509,6 +509,84 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     expect { build({ 'index.md' => page('[No HEAD](https://nohead.example.org/)') }) }.not_to raise_error
   end
 
+  context 'with images' do
+    let(:png) { 'not really a png' }
+
+    it 'checks local images, every candidate of srcset, and picture sources' do
+      html = '<img src="/images/a.png"> <img src="/images/missing.png"> ' \
+             '<img srcset="/images/a.png 1x, /images/missing-2x.png 2x" src="/images/a.png"> ' \
+             '<picture><source srcset="/images/missing.webp" type="image/webp"><img src="b.png"></picture>'
+      files = { 'images/a.png' => png, 'posts/b.png' => png, 'posts/index.html' => page(html) }
+
+      expect { build(files) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+        expect(error.message).to eq(
+          "Found 3 dead links:\n" \
+          "/images/missing-2x.png (image not found), linked from posts/index.html\n" \
+          "/images/missing.png (image not found), linked from posts/index.html\n" \
+          '/images/missing.webp (image not found), linked from posts/index.html'
+        )
+      }
+    end
+
+    it 'removes tabs and newlines from URLs, as browsers do' do
+      html = "<img src=\"/images/\na.png\"> <a href=\"/images/a\t.png\">A</a> <img srcset=\"/images/a.png\n2x\">"
+      files = { 'images/a.png' => png, 'index.html' => page(html) }
+
+      expect { build(files) }.not_to raise_error
+    end
+
+    it 'skips data URIs and lazy-loading attributes, and applies exclusions to images' do
+      html = '<img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" data-src="/images/lazy.png"> ' \
+             '<img src="/assets/missing.png">'
+
+      expect { build({ 'index.html' => page(html) }, link_checker: { 'exclude' => { 'paths' => ['^/assets/'] } }) }
+        .not_to raise_error
+    end
+
+    it 'checks external images and says they are images' do
+      stub_url('https://cdn.example.org/gone.png', 404)
+      stub_url('https://cdn.example.org/ok.png', 200)
+      html = '<img src="https://cdn.example.org/gone.png"> <img src="//cdn.example.org/ok.png">'
+
+      expect { build({ 'index.html' => page(html) }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError,
+                        %r{\AFound 1 dead link:\nhttps://cdn.example.org/gone.png \(image: HTTP 404\), linked from})
+    end
+
+    it 'only checks images on the site with images: { external: false }' do
+      html = '<img src="https://cdn.example.org/a.png"> <img src="/images/missing.png">'
+      report = File.join(dir, 'links.md')
+
+      expect do
+        build({ 'index.html' => page(html) }, link_checker: { 'check' => { 'images' => { 'external' => false } } },
+                                              env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+      end.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{\AFound 1 dead link:\n/images/missing.png })
+      expect(File.read(report)).to include('Checked 1 internal and 0 external links (0 cached), skipped 1.')
+    end
+
+    it 'finds images where tags say, such as lazy-loaded ones, and unquoted attributes and area links' do
+      html = '<img data-src="/images/lazy.png" src=/images/a.png> <a data-href="/nowhere/">A</a> ' \
+             '<map><area href="/missing-area/"></map>'
+      files = { 'images/a.png' => png, 'index.html' => page(html) }
+      images = { 'tags' => { 'img' => %w[src data-src] } }
+
+      expect { build(files, link_checker: { 'check' => { 'images' => images } }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+          expect(error.message).to eq(
+            "Found 2 dead links:\n/images/lazy.png (image not found), linked from index.html\n" \
+            '/missing-area/ (page not found), linked from index.html'
+          )
+        }
+    end
+
+    it 'does not check images with check.images: false' do
+      html = '<img src="/images/missing.png">'
+
+      expect { build({ 'index.html' => page(html) }, link_checker: { 'check' => { 'images' => false } }) }
+        .not_to raise_error
+    end
+  end
+
   it 'reports links blocked by bot protection as dead with blocked: false' do
     stub_url('https://walled.example.org/', 403)
 

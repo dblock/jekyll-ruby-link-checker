@@ -9,6 +9,13 @@ link_checker:
     ttl: 30d                       # how long to remember them (default: 30d)
     blocked_ttl: 1d                # how long to remember unverified links (default: check them every time)
     prune: true                    # forget links that are no longer on the site (default: false)
+  check:                           # what to check; each kind is true, false, or options (default: everything)
+    defaults:                      # options for every kind that doesn't set its own
+      external: true               # check references to other sites (default: true)
+    links: true                    # <a>, <area>, and <link> tags
+    images:
+      internal: true               # check images on the site (default: true)
+      external: false              # don't fetch images from other sites
   exclude:
     domains: [twitter.com]         # sites never to check, including their subdomains
     urls:                          # exact URLs, or /regular expressions/
@@ -47,3 +54,37 @@ LINK_CHECKER_CHANGED_FILES=files.txt  # only check the pages listed in this file
 ```
 
 With `LINK_CHECKER_CHANGED_FILES`, a change to a layout, an include, or anything else that isn't a page or an image checks every page.
+
+## What Is Checked
+
+Each kind under `check` is `true`, which checks it with its defaults, `false`, which doesn't check it, or a set of options:
+
+- `internal` checks references to the site itself, and `external` references to other sites; both default to `true`, or to what `check.defaults` sets.
+- `tags` says where the kind is found, as selectors and the attributes that hold URLs, and replaces the default.
+
+These are the kinds and the default `tags` of each:
+
+```yaml
+link_checker:
+  check:
+    links:
+      tags:
+        a: [href]
+        area: [href]
+        'link:not([rel~=preconnect], [rel~=dns-prefetch])': [href]
+    images:
+      tags:
+        img: [src, srcset]
+        source: [srcset]
+```
+
+A selector is a tag, such as `img`, optionally followed by words its attributes must contain, such as `link[rel~=stylesheet]`, and by words that rule it out, such as `a:not([rel~=external])`. A `srcset`, or any attribute whose name ends with `srcset`, holds several URLs, each followed by an optional descriptor such as `2x`. For example, to also check lazy-loaded images, whose URL a script copies from `data-src`:
+
+```yaml
+link_checker:
+  check:
+    images:
+      tags:
+        img: [src, srcset, data-src, data-srcset]
+        source: [srcset, data-srcset]
+```

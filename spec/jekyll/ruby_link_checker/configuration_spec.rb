@@ -89,9 +89,9 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
   it 'rejects unknown options with the valid ones' do
     expect { config('excludes' => {}) }.to raise_error(
       Jekyll::Errors::InvalidConfigurationError,
-      'Unknown link_checker option: excludes. Valid options: cache, exclude, concurrency, retries, user_agent, ' \
-      'verbose, permanent_redirects, blocked, detect_challenges, timeout, connect_timeout, host_concurrency, ' \
-      'host_interval, headers, host_headers'
+      'Unknown link_checker option: excludes. Valid options: cache, exclude, check, concurrency, retries, ' \
+      'user_agent, verbose, permanent_redirects, blocked, detect_challenges, timeout, connect_timeout, ' \
+      'host_concurrency, host_interval, headers, host_headers'
     )
   end
 

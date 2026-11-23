@@ -24,8 +24,11 @@ RuboCop
 RubyGems
 ruleset
 SHA
+srcset
 txt
 Typhoeus
 Wayback
 worktree
 YAML
+stylesheet
+stylesheets

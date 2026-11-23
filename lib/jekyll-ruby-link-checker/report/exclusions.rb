@@ -7,7 +7,7 @@ module Jekyll
       # site when a site has several, and dead links that failed because the site didn't answer properly. Pages that
       # are gone are left out, because they need to be fixed.
       module Exclusions
-        FLAKY = /\A(?:HTTP 5\d\d|Timeout|Connection error)/
+        FLAKY = /\A(?:\w+: )?(?:HTTP 5\d\d|Timeout|Connection error)/
         EXCLUSIONS = "These links may work, but couldn't be checked reliably. After checking them in a browser, " \
                      'add this to `_config.yml` to stop checking them.'
 

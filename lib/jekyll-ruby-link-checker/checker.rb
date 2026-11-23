@@ -6,7 +6,6 @@ module Jekyll
   module RubyLinkChecker
     # Collects the links of one build and checks them once the site is written.
     class Checker
-      HREF = /<a\s[^>]*?href=(["'])(.*?)\1/im
       HTML_EXTENSIONS = %w[.html .htm].freeze
 
       class << self
@@ -38,17 +37,14 @@ module Jekyll
         @only = ChangedFiles.pages(site, @config.changed_files(site.source))
         @report = new_report
         @links = Hash.new { |hash, url| hash[url] = Set.new }
+        @kinds = {}
       end
 
       def collect(page)
         return unless checked?(page)
 
         @report.page(page.relative_path, title: page.data['title'], url: page_url(page))
-        hrefs(page).each do |href|
-          next check_anchor(page, href) if href.start_with?('#')
-
-          @links[@urls.resolve(page.url, href)] << page.relative_path
-        end
+        references.scan(page.content.to_s).each { |kind, href| reference(page, kind, href) }
       end
 
       def verify
@@ -61,6 +57,19 @@ module Jekyll
 
       private
 
+      def references = @references ||= References.new(@config.check.kinds)
+
+      # Anchors on the same page are checked against it, and anything else once the site is written.
+      def reference(page, kind, href)
+        kind.link? && href.start_with?('#') ? check_anchor(page, href) : add(page, kind, @urls.resolve(page.url, href))
+      end
+
+      # A URL that is both linked and shown as an image keeps the kind it was first found as.
+      def add(page, kind, url)
+        @links[url] << page.relative_path
+        @kinds[url] ||= kind
+      end
+
       def new_report
         Report.new(verbose: @config.verbose?, file: @config.report_file(@site.source),
                    fail_on_dead_links: @config.fail_on_dead_links?, changed_pages: @only&.size,
@@ -72,12 +81,6 @@ module Jekyll
       def checked?(page)
         page.data['link_checker'] != false && HTML_EXTENSIONS.include?(page.output_ext.to_s.downcase) &&
           (@only.nil? || @only.include?(page.relative_path))
-      end
-
-      def hrefs(page)
-        page.content.to_s.scan(HREF).map { |_, href| CGI.unescapeHTML(href.strip) }.reject do |href|
-          href.empty? || href == '#'
-        end
       end
 
       def site_url
@@ -98,17 +101,21 @@ module Jekyll
         url = @urls.localize(href)
         return @report.count(:excluded) if @urls.excluded?(url)
 
+        return @report.count(:excluded) unless @kinds[href].checks?(Urls.external?(url))
+
         if Urls.external?(url)
           @report.count(:external)
-          external.check(url, locations: locations)
+          external.check(url, locations: locations, kind: @kinds[href].label)
         else
           check_internal(href, url, locations, internal)
         end
       end
 
+      # A missing image is reported as such, rather than as a missing page.
       def check_internal(href, url, locations, internal)
         @report.count(:internal)
         reason = internal.check(url)
+        reason = "#{@kinds[href].label} not found" if reason == 'page not found' && !@kinds[href].link?
         @report.log(href, reason || 'OK')
         @report.fail(href, locations, reason) if reason
       end

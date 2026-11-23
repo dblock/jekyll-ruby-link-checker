@@ -4,9 +4,11 @@ This plugin checks the links in a Jekyll site while it builds, and fails the bui
 
 ## Scope
 
-It checks every `<a href>` in the rendered pages and documents of a site. Links to the site itself are checked against the built files, including anchors and `jekyll-redirect-from` redirects. Links to other sites are checked with [ruby-link-checker](https://github.com/dblock/ruby-link-checker).
+It checks the references of each kind under `check`, links and images, in the rendered pages and documents of a site. References to the site itself are checked against the built files, including anchors and `jekyll-redirect-from` redirects. References to other sites are checked with [ruby-link-checker](https://github.com/dblock/ruby-link-checker), and share its cache. Images go through the same resolution, exclusions, and cache as links, so `data:` images are skipped like links with other schemes, and each reference keeps its kind, so reports say `image not found` or `image: HTTP 404`.
 
-It doesn't check images or scripts, work with other site generators, or fix links. [html-proofer](https://github.com/gjtorikian/html-proofer) checks built HTML more broadly.
+`Check::KINDS` defines each built-in kind by its label in reports and its `tags`: selectors, and the attributes of matching elements that hold URLs. The configuration uses the same shape, so a site can replace the `tags` of a kind, and the built-in kinds are defaults rather than special cases. `Selector` supports a tag, words that attributes must contain (`[rel~=stylesheet]`), and `:not(...)` of those, which is enough to tell stylesheets from other `<link>` tags without hard-coded rules; anything else is rejected rather than half-supported. `References` reads each element's attributes by exact name, quoted or not, so `data-src` is never mistaken for `src`, and asks each kind for the URLs it holds. Browsers remove tabs and newlines from URLs, so the plugin does too, after splitting `srcset` into its candidates.
+
+It doesn't check scripts, work with other site generators, or fix links. [html-proofer](https://github.com/gjtorikian/html-proofer) checks built HTML more broadly.
 
 ## Checking
 

@@ -40,10 +40,11 @@ module Jekyll
         'host_headers' => %i[host_headers host_headers]
       }.freeze
 
-      OPTIONS = (%w[cache exclude concurrency retries user_agent verbose permanent_redirects] + REQUEST_OPTIONS.keys)
+      OPTIONS = (%w[cache exclude check concurrency retries user_agent verbose permanent_redirects] +
+                 REQUEST_OPTIONS.keys)
                 .freeze
 
-      attr_reader :cache, :exclude, :concurrency, :retries, :user_agent, :request_options
+      attr_reader :cache, :exclude, :check, :concurrency, :retries, :user_agent, :request_options
 
       def initialize(raw)
         raw ||= {}
@@ -94,14 +95,19 @@ module Jekyll
       private
 
       def read(raw)
-        @cache = section(Cache, raw['cache'], 'cache')
-        @exclude = section(Exclude, raw['exclude'], 'exclude')
+        read_sections(raw)
         @concurrency = Values.positive_integer(raw.fetch('concurrency', 5), 'concurrency')
         @retries = Values.non_negative_integer(raw.fetch('retries', 1), 'retries')
         @user_agent = raw['user_agent']&.to_s
         @verbose = raw.fetch('verbose', false) == true
         @permanent_redirects = Values.boolean(raw.fetch('permanent_redirects', false), 'permanent_redirects')
         @request_options = read_request_options(raw)
+      end
+
+      def read_sections(raw)
+        @cache = section(Cache, raw['cache'], 'cache')
+        @exclude = section(Exclude, raw['exclude'], 'exclude')
+        @check = Check.new(raw['check'])
       end
 
       def read_request_options(raw)

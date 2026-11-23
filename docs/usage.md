@@ -6,7 +6,7 @@ Checking is off by default, so that `jekyll serve` stays fast. Turn it on with `
 LINK_CHECKER=1 bundle exec jekyll build
 ```
 
-The plugin checks every link in your pages and posts: links to other pages of the site, anchors such as `#usage`, relative links, and links to other sites. It also checks images, in `<img src>`, and in `srcset` of `<img>` and of `<source>` in `<picture>`; a missing image on the site is reported as `image not found`, and a broken one elsewhere as, for example, `image: HTTP 404`. See [configuration](configuration.md#what-is-checked) to choose what's checked. It prints a summary, and fails the build if it finds dead links, saying where each one is linked from:
+The plugin checks every link in your pages and posts: links to other pages of the site, anchors such as `#usage`, relative links, and links to other sites. It also checks images, in `<img src>`, and in `srcset` of `<img>` and of `<source>` in `<picture>`, and scripts and stylesheets. A missing image on the site is reported as `image not found`, and a broken one elsewhere as, for example, `image: HTTP 404`. See [configuration](configuration.md#what-is-checked) to choose what's checked. It prints a summary, and fails the build if it finds dead links, saying where each one is linked from:
 
 ```text
 LinkChecker: Checked 412 internal and 2793 external links (2731 cached), skipped 25. Couldn't verify 1 link.

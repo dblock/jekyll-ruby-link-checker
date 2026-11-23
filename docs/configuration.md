@@ -12,10 +12,12 @@ link_checker:
   check:                           # what to check; each kind is true, false, or options (default: everything)
     defaults:                      # options for every kind that doesn't set its own
       external: true               # check references to other sites (default: true)
-    links: true                    # <a>, <area>, and <link> tags
+    links: true                    # <a>, <area>, and <link> tags other than stylesheets
     images:
       internal: true               # check images on the site (default: true)
       external: false              # don't fetch images from other sites
+    scripts: true                  # <script src>
+    stylesheets: true              # <link rel="stylesheet">
   exclude:
     domains: [twitter.com]         # sites never to check, including their subdomains
     urls:                          # exact URLs, or /regular expressions/
@@ -71,11 +73,17 @@ link_checker:
       tags:
         a: [href]
         area: [href]
-        'link:not([rel~=preconnect], [rel~=dns-prefetch])': [href]
+        'link:not([rel~=stylesheet], [rel~=preconnect], [rel~=dns-prefetch])': [href]
     images:
       tags:
         img: [src, srcset]
         source: [srcset]
+    scripts:
+      tags:
+        script: [src]
+    stylesheets:
+      tags:
+        'link[rel~=stylesheet]': [href]
 ```
 
 A selector is a tag, such as `img`, optionally followed by words its attributes must contain, such as `link[rel~=stylesheet]`, and by words that rule it out, such as `a:not([rel~=external])`. A `srcset`, or any attribute whose name ends with `srcset`, holds several URLs, each followed by an optional descriptor such as `2x`. For example, to also check lazy-loaded images, whose URL a script copies from `data-src`:

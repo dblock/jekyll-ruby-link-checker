@@ -8,9 +8,12 @@ module Jekyll
       # Each built-in kind, with its label in reports and the attributes of the elements, by selector, that hold it.
       KINDS = {
         'links' => ['link', {
-          'a' => %w[href], 'area' => %w[href], 'link:not([rel~=preconnect], [rel~=dns-prefetch])' => %w[href]
+          'a' => %w[href], 'area' => %w[href],
+          'link:not([rel~=stylesheet], [rel~=preconnect], [rel~=dns-prefetch])' => %w[href]
         }],
-        'images' => ['image', { 'img' => %w[src srcset], 'source' => %w[srcset] }]
+        'images' => ['image', { 'img' => %w[src srcset], 'source' => %w[srcset] }],
+        'scripts' => ['script', { 'script' => %w[src] }],
+        'stylesheets' => ['stylesheet', { 'link[rel~=stylesheet]' => %w[href] }]
       }.freeze
 
       OPTIONS = %w[internal external].freeze

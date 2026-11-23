@@ -12,14 +12,14 @@ RSpec.describe Jekyll::RubyLinkChecker::Check do
   end
 
   it 'checks every kind, inside and outside the site, by default' do
-    expect(kinds(nil).values.map(&:name)).to eq(%w[links images])
+    expect(kinds(nil).values.map(&:name)).to eq(%w[links images scripts stylesheets])
     expect(kinds(nil).values).to all(have_attributes(internal: true, external: true))
     expect(kinds(nil)['images'].label).to eq('image')
   end
 
   it 'turns kinds off with false, and keeps their defaults with true' do
-    expect(kinds('images' => false).keys).to eq(%w[links])
-    expect(kinds('images' => true).keys).to eq(%w[links images])
+    expect(kinds('images' => false, 'scripts' => false).keys).to eq(%w[links stylesheets])
+    expect(kinds('images' => true).keys).to eq(%w[links images scripts stylesheets])
   end
 
   it 'applies defaults to every kind that does not set its own' do
@@ -39,7 +39,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Check do
   it 'rejects unknown kinds and options, and invalid values, naming them' do
     {
       'yes' => 'link_checker.check must be a set of options',
-      { 'videos' => true } => 'Unknown link_checker.check option: videos. Valid options: defaults, links, images',
+      { 'videos' => true } =>
+        'Unknown link_checker.check option: videos. Valid options: defaults, links, images, scripts, stylesheets',
       { 'images' => { 'fetch' => true } } =>
         'Unknown link_checker.check.images option: fetch. Valid options: tags, internal, external',
       { 'defaults' => { 'tags' => {} } } => 'Unknown link_checker.check.defaults option: tags.',

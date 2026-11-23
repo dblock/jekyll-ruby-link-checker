@@ -587,6 +587,42 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     end
   end
 
+  context 'with scripts and stylesheets' do
+    let(:html) do
+      '<link rel="stylesheet" href="/css/missing.css"> <link rel="alternate stylesheet" href="/css/dark.css"> ' \
+        '<link rel="icon" href="/missing.ico"> <link rel="preconnect" href="https://fonts.example.org"> ' \
+        '<link href="/css/site.css" rel="stylesheet"> <script src="/js/missing.js" defer></script> ' \
+        '<script>console.log("inline")</script> <script src="/js/site.js"></script>'
+    end
+    let(:files) { { 'css/site.css' => '', 'js/site.js' => '', 'index.html' => page(html) } }
+
+    it 'checks scripts, stylesheets, and other link tags, but not connections to origins' do
+      expect { build(files) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+        expect(error.message).to eq(
+          "Found 4 dead links:\n" \
+          "/css/dark.css (stylesheet not found), linked from index.html\n" \
+          "/css/missing.css (stylesheet not found), linked from index.html\n" \
+          "/js/missing.js (script not found), linked from index.html\n" \
+          '/missing.ico (page not found), linked from index.html'
+        )
+      }
+    end
+
+    it 'does not check scripts and stylesheets when they are turned off' do
+      check = { 'scripts' => false, 'stylesheets' => false }
+
+      expect { build(files, link_checker: { 'check' => check }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, %r{\AFound 1 dead link:\n/missing.ico })
+    end
+
+    it 'checks external scripts and says they are scripts' do
+      stub_url('https://cdn.example.org/gone.js', 404)
+
+      expect { build({ 'index.html' => page('<script src="https://cdn.example.org/gone.js"></script>') }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, /gone.js \(script: HTTP 404\), linked from/)
+    end
+  end
+
   it 'reports links blocked by bot protection as dead with blocked: false' do
     stub_url('https://walled.example.org/', 403)
 

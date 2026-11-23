@@ -24,6 +24,10 @@ The site didn't answer properly. That's often temporary, so check the link in a 
 
 The link is malformed, often because of a typo, a space, or a character such as `|` that must be escaped. Fix it in the page.
 
+## New and Existing Dead Links
+
+With a baseline, such as in pull requests that only fail on new dead links, the report lists New Dead Links, which the change added and which fail the build, then Existing Dead Links, which were already dead on the default branch, and Fixed Links, which the change fixed, both collapsed. Fix the new ones; the existing ones are listed in the issue of the default branch. Without a baseline yet, such as on the first run, the report lists every dead link without failing the build, and the next check of the default branch saves one.
+
 ## Unverified Links
 
 Many sites block automated requests, even though the page exists. The checker reports those links as unverified, and they don't fail the build. The reason says how the site blocked the request: a Cloudflare challenge, HTTP 401 or 403 (access refused), HTTP 429 (too many requests), or HTTP 999 (LinkedIn).

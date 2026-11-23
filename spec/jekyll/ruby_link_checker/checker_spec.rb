@@ -660,6 +660,43 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
         .with('LinkChecker:', start_with("There's no baseline to tell new dead links from existing ones, so 3 dead"))
     end
 
+    it 'reports new, existing, and fixed dead links in their own sections, and counts only new ones' do
+      report = File.join(dir, 'links.md')
+      env = { 'LINK_CHECKER_BASELINE' => baseline, 'LINK_CHECKER_FAIL' => 'new', 'LINK_CHECKER_REPORT' => report }
+      expect { build_with(env) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+
+      markdown = File.read(report)
+      expect(markdown).to start_with('<!-- jekyll-ruby-link-checker dead links: 1 -->')
+      expect(markdown).to include(
+        "### 1 New Dead Link\n\n- [/missing-new/](<https://www.example.com/missing-new/>) (page not found)\n",
+        "### 1 Warning\n",
+        "### 1 Existing Dead Link\n\nThese links were already dead in the baseline, such as on the default " \
+        "branch.\n\n<details><summary>1 link</summary>\n\n" \
+        "- [/missing-old/](<https://www.example.com/missing-old/>) (page not found)\n",
+        "### 1 Fixed Link\n\n",
+        '- [/about/](<https://www.example.com/about/>) (was page not found)'
+      )
+      expect(markdown).not_to include('/elsewhere/')
+    end
+
+    it 'says there are no new dead links when all of them existed' do
+      report = File.join(dir, 'links.md')
+      files['index.html'] = page('<a href="/missing-old/">Old</a>')
+
+      build_with('LINK_CHECKER_BASELINE' => baseline, 'LINK_CHECKER_FAIL' => 'new', 'LINK_CHECKER_REPORT' => report)
+      expect(File.read(report)).to include("No new dead links.\n\n### 1 Existing Dead Link")
+    end
+
+    it 'lists dead links without a baseline, with why they do not fail the build' do
+      report = File.join(dir, 'links.md')
+      build_with('LINK_CHECKER_FAIL' => 'new', 'LINK_CHECKER_REPORT' => report)
+
+      expect(File.read(report)).to include(
+        "<!-- jekyll-ruby-link-checker dead links: 0 -->\n",
+        "### 3 Dead Links\n\nThere's no baseline, such as from the default branch, to tell new dead links from existing"
+      )
+    end
+
     it 'ignores a baseline that cannot be read, with a warning' do
       File.write(baseline, '{"version": 2}')
 
@@ -734,7 +771,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
       expect(File.read(report)).to include(
         "<!-- jekyll-ruby-link-checker dead links: 3 -->\n\nChecked 3 internal and 1 external links (0 cached), " \
         "skipped 0. 2 warnings.\n",
-        "### 2 Warnings\n\nThese links are dead, but are set not to fail the build, with `fail: false`.\n\n" \
+        "### 2 Warnings\n\nThese links are dead, but don't fail the build, because their kind is set to " \
+        "`fail: false`, or because they failed in a way that may be temporary.\n\n" \
         "- [/images/missing.png](<https://www.example.com/images/missing.png>) (image not found)\n  " \
         "- [index.html](<https://www.example.com/>)\n" \
         "- [cdn.example.org/gone.png](<https://cdn.example.org/gone.png>) (image: HTTP 404)\n"

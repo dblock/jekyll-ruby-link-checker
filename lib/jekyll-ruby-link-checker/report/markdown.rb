@@ -10,7 +10,8 @@ module Jekyll
         MARKER = 'jekyll-ruby-link-checker dead links:'
         UNVERIFIED = 'Bot protection blocked these checks, so these links may work. Check them in a browser.'
         MOVED = 'These links work, but redirect permanently. Update them to link to where they moved.'
-        WARNINGS = 'These links are dead, but are set not to fail the build, with `fail: false`.'
+        WARNINGS = "These links are dead, but don't fail the build, because their kind is set to `fail: false`, or " \
+                   'because they failed in a way that may be temporary.'
         GUIDE = 'See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).'
         # Pages listed under a link before the rest are collapsed.
         PAGES_SHOWN = 3
@@ -19,9 +20,9 @@ module Jekyll
 
         def markdown
           lines = ["<!-- #{MARKER} #{failing.size} -->", '', summary, '']
-          lines += failing.empty? ? ['No dead links.'] : section(failing, 'Dead Link')
+          lines += dead_section
           lines += other_sections
-          lines += ['', GUIDE] unless [@failures, @warnings, @unverified, @moved].all?(&:empty?)
+          lines += ['', GUIDE] unless [@dead, @unverified, @moved].all?(&:empty?)
           "#{lines.join("\n")}\n"
         end
 
@@ -31,6 +32,7 @@ module Jekyll
         def other_sections
           sections = [
             (section(@warnings, 'Warning', WARNINGS) unless @warnings.empty?),
+            *comparison_sections,
             (unverified_section unless @unverified.empty?),
             (section(@moved, 'Link', MOVED, moved: true) unless @moved.empty?),
             exclusions_section

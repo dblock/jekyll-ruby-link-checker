@@ -24,6 +24,8 @@ link_checker:
         paths: ['^/images/old/']
     scripts: true                  # <script src>
     stylesheets: true              # <link rel="stylesheet">
+    media: true                    # <video>, <audio>, <source src>, <track>, and video posters
+    iframes: true                  # <iframe src>
   layouts: true                    # also check what layouts and includes reference, such as navigation (default: true)
   exclude:
     domains: [twitter.com]         # sites never to check, including their subdomains
@@ -96,6 +98,15 @@ link_checker:
     stylesheets:
       tags:
         'link[rel~=stylesheet]': [href]
+    media:
+      tags:
+        video: [src, poster]
+        audio: [src]
+        source: [src]
+        track: [src]
+    iframes:
+      tags:
+        iframe: [src]
 ```
 
 A selector is a tag, such as `img`, optionally followed by words its attributes must contain, such as `link[rel~=stylesheet]`, and by words that rule it out, such as `a:not([rel~=external])`. A `srcset`, or any attribute whose name ends with `srcset`, holds several URLs, each followed by an optional descriptor such as `2x`. For example, to also check lazy-loaded images, whose URL a script copies from `data-src`:
@@ -108,3 +119,17 @@ link_checker:
         img: [src, srcset, data-src, data-srcset]
         source: [srcset, data-srcset]
 ```
+
+Any other key under `check` is a kind of your own, which needs `tags`, and is reported by its name, such as `backgrounds not found`. It takes the same options as the built-in kinds. For example, to check background images that a script reads from `data-background`:
+
+```yaml
+link_checker:
+  check:
+    backgrounds:
+      tags:
+        div: [data-background]
+        section: [data-background]
+      external: false
+```
+
+A misspelled kind, such as `image`, doesn't have `tags`, so it fails the build with the list of built-in kinds.

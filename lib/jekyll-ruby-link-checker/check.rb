@@ -4,7 +4,8 @@ module Jekyll
   module RubyLinkChecker
     # The `check` section of `link_checker`: which kinds of references are checked, where each is found, with `tags`,
     # and how, with `internal`, `external`, `fail`, and `exclude`. `defaults` applies to every kind that doesn't set
-    # its own, and its `exclude` adds to each kind's.
+    # its own, and its `exclude` adds to each kind's. Any other key is a kind of the site's own, which sets `tags`, and
+    # is reported by its name.
     class Check
       # Each built-in kind, with its label in reports and the attributes of the elements, by selector, that hold it.
       KINDS = {
@@ -14,8 +15,14 @@ module Jekyll
         }],
         'images' => ['image', { 'img' => %w[src srcset], 'source' => %w[srcset] }],
         'scripts' => ['script', { 'script' => %w[src] }],
-        'stylesheets' => ['stylesheet', { 'link[rel~=stylesheet]' => %w[href] }]
+        'stylesheets' => ['stylesheet', { 'link[rel~=stylesheet]' => %w[href] }],
+        'media' => ['media', {
+          'video' => %w[src poster], 'audio' => %w[src], 'source' => %w[src], 'track' => %w[src]
+        }],
+        'iframes' => ['iframe', { 'iframe' => %w[src] }]
       }.freeze
+
+      NAME = /\A[a-z][a-z0-9_-]*\z/
 
       OPTIONS = %w[internal external fail exclude].freeze
       BOOLEANS = %w[internal external fail anchors].freeze
@@ -27,12 +34,23 @@ module Jekyll
       def initialize(raw)
         raw ||= {}
         Values.invalid!('check', raw, 'a set of options') unless raw.is_a?(Hash)
-        Values.known!(raw, ['defaults', *KINDS.keys], 'check')
         defaults = options(raw.fetch('defaults', {}), 'check.defaults', OPTIONS)
-        @kinds = KINDS.filter_map { |name, (label, tags)| kind(name, label, tags, raw[name], defaults) }
+        @kinds = all(raw).filter_map { |name, (label, tags)| kind(name, label, tags, raw[name], defaults) }
       end
 
       private
+
+      # The built-in kinds, then those of the site, labeled by their name. A misspelled built-in kind, such as
+      # `image`, has no `tags`, so it fails rather than being ignored.
+      def all(raw)
+        KINDS.merge((raw.keys - ['defaults', *KINDS.keys]).to_h do |name|
+          unless name.to_s.match?(NAME) && raw[name].is_a?(Hash) && raw[name].key?('tags')
+            Values.invalid!("check.#{name}", raw[name], "a kind with tags, as it isn't one of #{KINDS.keys.join(', ')}")
+          end
+
+          [name, [name, nil]]
+        end)
+      end
 
       # A kind is checked unless it's `false`; `true`, or leaving it out, keeps its defaults.
       def kind(name, label, tags, value, defaults)

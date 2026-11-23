@@ -7,6 +7,7 @@
 - [#33](https://github.com/dblock/jekyll-ruby-link-checker/pull/33): Check scripts and stylesheets - [@dblock](https://github.com/dblock).
 - [#35](https://github.com/dblock/jekyll-ruby-link-checker/pull/35): Check what layouts and includes reference, such as navigation, once per layout, with the `layouts` option to turn it off - [@dblock](https://github.com/dblock).
 - [#37](https://github.com/dblock/jekyll-ruby-link-checker/pull/37): List dead references of a kind as warnings with `fail: false`, exclude references of one kind with `exclude`, and skip anchors with `links.anchors: false` - [@dblock](https://github.com/dblock).
+- [#38](https://github.com/dblock/jekyll-ruby-link-checker/pull/38): Check video, audio, and iframes, and kinds of references of your own, such as lazy-loaded images - [@dblock](https://github.com/dblock).
 - Your contribution here.
 
 ## 0.1.0 (2026/11/23)

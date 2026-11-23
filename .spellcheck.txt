@@ -32,3 +32,5 @@ worktree
 YAML
 stylesheet
 stylesheets
+iframe
+iframes

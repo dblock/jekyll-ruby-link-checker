@@ -587,6 +587,51 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     end
   end
 
+  context 'with media and iframes' do
+    it 'checks videos, their posters, sources, and tracks, audio, and iframes' do
+      html = '<video src="/media/missing.mp4" poster="/media/missing.jpg"><source src="/media/missing.webm">' \
+             '<track src="/media/missing.vtt"></video> <audio src="/media/missing.mp3"></audio> ' \
+             '<iframe src="/embeds/missing.html"></iframe>'
+
+      expect { build({ 'index.html' => page(html) }) }.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+        expect(error.message).to eq(
+          "Found 6 dead links:\n" \
+          "/embeds/missing.html (iframe not found), linked from index.html\n" \
+          "/media/missing.jpg (media not found), linked from index.html\n" \
+          "/media/missing.mp3 (media not found), linked from index.html\n" \
+          "/media/missing.mp4 (media not found), linked from index.html\n" \
+          "/media/missing.vtt (media not found), linked from index.html\n" \
+          '/media/missing.webm (media not found), linked from index.html'
+        )
+      }
+    end
+
+    it 'does not check them when they are turned off' do
+      html = '<video src="/media/missing.mp4"></video> <iframe src="/embeds/missing.html"></iframe>'
+
+      check = { 'media' => false, 'iframes' => false }
+
+      expect { build({ 'index.html' => page(html) }, link_checker: { 'check' => check }) }.not_to raise_error
+    end
+  end
+
+  context 'with kinds of the site' do
+    it 'checks them where their tags say, and reports them by their name' do
+      html = '<div data-background="/images/missing-hero.jpg"></div> <img data-src="/images/missing.png">'
+      check = { 'backgrounds' => { 'tags' => { 'div' => 'data-background' } },
+                'lazy_images' => { 'tags' => { 'img' => %w[data-src] } } }
+
+      expect { build({ 'index.html' => page(html) }, link_checker: { 'check' => check }) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+          expect(error.message).to eq(
+            "Found 2 dead links:\n" \
+            "/images/missing-hero.jpg (backgrounds not found), linked from index.html\n" \
+            '/images/missing.png (lazy_images not found), linked from index.html'
+          )
+        }
+    end
+  end
+
   context 'with options of a kind' do
     let(:report) { File.join(dir, 'links.md') }
     let(:html) do

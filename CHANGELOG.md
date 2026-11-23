@@ -20,4 +20,5 @@
 - [#22](https://github.com/dblock/jekyll-ruby-link-checker/pull/22): Add a logo - [@dblock](https://github.com/dblock).
 - [#23](https://github.com/dblock/jekyll-ruby-link-checker/pull/23): Accept regular expressions between slashes in `exclude.urls` - [@dblock](https://github.com/dblock).
 - [#24](https://github.com/dblock/jekyll-ruby-link-checker/pull/24): List links in the report with the titles of the pages that link to them, instead of tables - [@dblock](https://github.com/dblock).
+- [#25](https://github.com/dblock/jekyll-ruby-link-checker/pull/25): Group unverified links by site in the report, and collapse them - [@dblock](https://github.com/dblock).
 - Your contribution here.

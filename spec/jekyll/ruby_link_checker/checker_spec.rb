@@ -354,12 +354,33 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
 
         Bot protection blocked these checks, so these links may work. Check them in a browser.
 
-        - [challenge.example.org/](<https://challenge.example.org/>) (Cloudflare challenge (HTTP 503))
-          - [index.md](<https://www.example.com/>)
-        - [linkedin.example.org/](<https://linkedin.example.org/>) (HTTP 999)
-          - [index.md](<https://www.example.com/>)
-        - [walled.example.org/](<https://walled.example.org/>) (HTTP 403)
-          - [index.md](<https://www.example.com/>)
+        <details><summary>3 sites</summary>
+
+        - challenge.example.org: 1 link, Cloudflare challenge (HTTP 503)
+          - [challenge.example.org/](<https://challenge.example.org/>)
+        - linkedin.example.org: 1 link, HTTP 999
+          - [linkedin.example.org/](<https://linkedin.example.org/>)
+        - walled.example.org: 1 link, HTTP 403
+          - [walled.example.org/](<https://walled.example.org/>)
+
+        </details>
+      MARKDOWN
+    end
+
+    it 'groups them by site, with the most links first, and lists the reasons of each site' do
+      stub_url('https://walled.example.org/a', 403)
+      stub_url('https://walled.example.org/b', 401)
+      build({ 'index.md' => page('[A](https://walled.example.org/a) [B](https://walled.example.org/b) ' \
+                                 '[C](https://linkedin.example.org/)') },
+            env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+
+      expect(File.read(report)).to include(<<~MARKDOWN)
+        <details><summary>2 sites</summary>
+
+        - walled.example.org: 2 links, HTTP 401, HTTP 403
+          - [walled.example.org/a](<https://walled.example.org/a>)
+          - [walled.example.org/b](<https://walled.example.org/b>)
+        - linkedin.example.org: 1 link, HTTP 999
       MARKDOWN
     end
   end

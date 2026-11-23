@@ -20,7 +20,7 @@ Options that are passed to ruby-link-checker, such as `host_concurrency`, are on
 
 The plugin records each link from ruby-link-checker's `complete` event, which fires once with the final result. The `result` event fires for every attempt, including each redirect, so recording it would report redirected links as dead.
 
-The Markdown report, which workflows post in issues and comments, lists each link with the pages that link to it, by title and linked to the live page, rather than in a table, because long URLs and source paths made tables unreadable. Link text is shortened, past three pages the rest are collapsed, and the first line holds the number of dead links for workflows to read. The build log keeps source paths.
+The Markdown report, which workflows post in issues and comments, lists each link with the pages that link to it, by title and linked to the live page, rather than in a table, because long URLs and source paths made tables unreadable. Link text is shortened, past three pages the rest are collapsed, unverified links, which often outnumber dead ones and come from a few sites, are grouped by site in a collapsed block, and the first line holds the number of dead links for workflows to read. The build log keeps source paths.
 
 Many sites block automated requests even when the page exists. ruby-link-checker reports those links as blocked, by their status or by a detected challenge, and the plugin lists them as unverified, without failing the build. Links that moved permanently are only listed with `permanent_redirects`, because many sites redirect most old links, for example from `http` to `https`, and the list would crowd out the dead links.
 

@@ -18,7 +18,7 @@ module Jekyll
         def markdown
           lines = ["<!-- #{MARKER} #{@failures.size} -->", '', summary, '']
           lines += @failures.empty? ? ['No dead links.'] : section(@failures, 'Dead Link')
-          lines += ['', *section(@unverified, 'Unverified Link', UNVERIFIED)] unless @unverified.empty?
+          lines += ['', *unverified_section] unless @unverified.empty?
           lines += ['', *section(@moved, 'Link', MOVED, moved: true)] unless @moved.empty?
           "#{lines.join("\n")}\n"
         end
@@ -28,6 +28,21 @@ module Jekyll
         def section(links, noun, note = nil, moved: false)
           title = moved ? "#{plural(links.size, noun)} Moved Permanently" : plural(links.size, noun)
           ["### #{title}", '', *([note, ''] if note), *links.sort.flat_map { |url, link| item(url, link, moved) }]
+        end
+
+        # Unverified links often outnumber dead ones and come from a few sites, so they're grouped by site and
+        # collapsed. A link is only blocked after a server answered, so it has a host.
+        def unverified_section
+          sites = @unverified.group_by { |url, _link| URI(url).host }.sort_by { |name, links| [-links.size, name] }
+          ["### #{plural(@unverified.size, 'Unverified Link')}", '', UNVERIFIED, '',
+           "<details><summary>#{plural(sites.size, 'site')}</summary>", '',
+           *sites.flat_map { |name, links| site(name, links) }, '', '</details>']
+        end
+
+        def site(name, links)
+          reasons = links.map { |_url, link| link[:reason] }.uniq.sort.map { |reason| escape(reason) }.join(', ')
+          ["- #{escape(name)}: #{plural(links.size, 'link')}, #{reasons}",
+           *links.sort.map { |url, _link| "  - #{link_to(url)}" }]
         end
 
         def item(url, link, moved)

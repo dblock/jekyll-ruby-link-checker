@@ -10,6 +10,7 @@ module Jekyll
         MARKER = 'jekyll-ruby-link-checker dead links:'
         UNVERIFIED = 'Bot protection blocked these checks, so these links may work. Check them in a browser.'
         MOVED = 'These links work, but redirect permanently. Update them to link to where they moved.'
+        GUIDE = 'See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).'
         # Pages listed under a link before the rest are collapsed.
         PAGES_SHOWN = 3
         # Longest link text before it's shortened.
@@ -20,6 +21,7 @@ module Jekyll
           lines += @failures.empty? ? ['No dead links.'] : section(@failures, 'Dead Link')
           lines += ['', *unverified_section] unless @unverified.empty?
           lines += ['', *section(@moved, 'Link', MOVED, moved: true)] unless @moved.empty?
+          lines += ['', GUIDE] unless [@failures, @unverified, @moved].all?(&:empty?)
           "#{lines.join("\n")}\n"
         end
 

@@ -26,6 +26,10 @@ gh workflow run release.yml --repo dblock/jekyll-ruby-link-checker -f rubygems-o
 
 For later releases, run the workflow without inputs, or with `-f version=X.Y.Z` to release a different version than the checked-in one.
 
+## Version Pins in the Documentation
+
+The workflow examples in `README.md` and `docs/` pin a release, such as `check-links.yml@v0.1.0`. The next development version commit, which the Release workflow pushes after the release, updates every such pin to the version it released, with `RubyGemRelease::Version::References` and the `WORKFLOW_PIN` pattern in the `Rakefile`. Write new examples in the same form, `dblock/jekyll-ruby-link-checker/.github/workflows/<name>.yml@vX.Y.Z`, so that releases keep them current.
+
 ## Verifying a Release
 
 After the workflow succeeds, check that:

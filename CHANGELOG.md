@@ -21,4 +21,5 @@
 - [#23](https://github.com/dblock/jekyll-ruby-link-checker/pull/23): Accept regular expressions between slashes in `exclude.urls` - [@dblock](https://github.com/dblock).
 - [#24](https://github.com/dblock/jekyll-ruby-link-checker/pull/24): List links in the report with the titles of the pages that link to them, instead of tables - [@dblock](https://github.com/dblock).
 - [#25](https://github.com/dblock/jekyll-ruby-link-checker/pull/25): Group unverified links by site in the report, and collapse them - [@dblock](https://github.com/dblock).
+- [#27](https://github.com/dblock/jekyll-ruby-link-checker/pull/27): Move the usage, configuration, and GitHub Actions documentation to `docs/`, add a guide to fixing links, linked from the report, and update the workflow version pins in the documentation on release - [@dblock](https://github.com/dblock).
 - Your contribution here.

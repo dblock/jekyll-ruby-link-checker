@@ -13,6 +13,7 @@ Jekyll
 JSON
 LCOV
 libvips
+LinkedIn
 md
 og
 OpenSearch
@@ -25,5 +26,6 @@ ruleset
 SHA
 txt
 Typhoeus
+Wayback
 worktree
 YAML

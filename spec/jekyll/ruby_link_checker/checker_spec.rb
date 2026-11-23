@@ -236,6 +236,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
         - [index.md](<https://www.example.com/>)
       - [dead.example.org/a\\|b](<https://dead.example.org/a|b>) (Invalid URL)
         - [index.md](<https://www.example.com/>)
+
+      See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).
     MARKDOWN
   end
 
@@ -264,6 +266,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
           - [Home](<https://www.example.com/>)
 
           </details>
+
+      See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).
     MARKDOWN
   end
 
@@ -274,7 +278,7 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
       build({ 'index.md' => page('[Missing](/missing/)', 'title' => 'Home') },
             config: { 'url' => nil }, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
     end.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
-    expect(File.read(report)).to end_with("- /missing/ (page not found)\n  - Home\n")
+    expect(File.read(report)).to include("- /missing/ (page not found)\n  - Home\n")
   end
 
   it 'reports dead links without failing the build when LINK_CHECKER_FAIL is off' do
@@ -364,6 +368,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
           - [walled.example.org/](<https://walled.example.org/>)
 
         </details>
+
+        See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).
       MARKDOWN
     end
 
@@ -448,6 +454,8 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
 
         - [moved.example.org/](<https://moved.example.org/>) moved to [new.example.org/](<https://new.example.org/>)
           - [index.md](<https://www.example.com/>)
+
+        See [how to fix these links](https://github.com/dblock/jekyll-ruby-link-checker/blob/master/docs/fixing-links.md).
       MARKDOWN
     end
 

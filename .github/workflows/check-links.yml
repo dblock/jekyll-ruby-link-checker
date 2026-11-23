@@ -37,10 +37,17 @@ on:
         default: link-checker-report
       fail-on-dead-links:
         description: >-
-          Fail the check when it finds dead links; with `false`, dead links are reported, with a warning, and the check
-          passes. A build that fails for another reason still fails.
-        type: boolean
-        default: true
+          `true` fails the check on dead links, `new` only on dead links that aren't dead on the default branch, and
+          `false` reports dead links, with a warning, and passes. The default is `new` on pull requests and `true`
+          otherwise. A build that fails for another reason still fails.
+        type: string
+        default: ''
+      dead-links-file:
+        description: >-
+          File for the dead links of runs other than pull requests, relative to the site directory, which runs with
+          `fail-on-dead-links: new` compare with.
+        type: string
+        default: .cache/link-checker-dead-links.json
       changed-files-only:
         description: >-
           On pull requests, only check pages whose source changed, or all pages when a layout, an include, data,
@@ -65,6 +72,12 @@ jobs:
       CACHE_PATH: >-
         ${{ (inputs.working-directory == '.' || inputs.working-directory == '') && inputs.cache-file
         || format('{0}/{1}', inputs.working-directory, inputs.cache-file) }}
+      DEAD_LINKS_PATH: >-
+        ${{ (inputs.working-directory == '.' || inputs.working-directory == '') && inputs.dead-links-file
+        || format('{0}/{1}', inputs.working-directory, inputs.dead-links-file) }}
+      FAIL_ON: >-
+        ${{ inputs.fail-on-dead-links != '' && inputs.fail-on-dead-links
+        || (github.event_name == 'pull_request' && 'new' || 'true') }}
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -105,6 +118,15 @@ jobs:
         path: ${{ env.CACHE_PATH }}
         key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: ${{ inputs.cache-key-prefix }}
+    # Runs other than pull requests save their dead links, and pull requests can restore caches of their base branch,
+    # so they compare with the default branch. The path differs from the link cache's, so the caches never mix.
+    - name: Restore Dead Links
+      if: env.FAIL_ON == 'new'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ env.DEAD_LINKS_PATH }}
+        key: ${{ inputs.cache-key-prefix }}dead-links-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: ${{ inputs.cache-key-prefix }}dead-links-
     # For a pull request, the artifact also records its number for publish-report.yml, because
     # `workflow_run` events from forks don't include it.
     - name: Record Pull Request
@@ -119,8 +141,12 @@ jobs:
         LINK_CHECKER_REPORT: ${{ runner.temp }}/link-checker/link-checker-report.md
         BUILD_COMMAND: ${{ inputs.build-command }}
         LINK_CHECKER: '1'
-        LINK_CHECKER_FAIL: ${{ inputs.fail-on-dead-links }}
+        LINK_CHECKER_FAIL: ${{ env.FAIL_ON }}
         LINK_CHECKER_CACHE: ${{ github.workspace }}/${{ inputs.working-directory }}/${{ inputs.cache-file }}
+        LINK_CHECKER_BASELINE: >-
+          ${{ env.FAIL_ON == 'new' && format('{0}/{1}', github.workspace, env.DEAD_LINKS_PATH) || '' }}
+        LINK_CHECKER_DEAD_LINKS: >-
+          ${{ github.event_name != 'pull_request' && format('{0}/{1}', github.workspace, env.DEAD_LINKS_PATH) || '' }}
       run: eval "$BUILD_COMMAND"
     - name: Write Job Summary
       if: always()
@@ -149,3 +175,9 @@ jobs:
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+    - name: Save Dead Links
+      if: always() && github.event_name != 'pull_request' && hashFiles(env.DEAD_LINKS_PATH) != ''
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ env.DEAD_LINKS_PATH }}
+        key: ${{ inputs.cache-key-prefix }}dead-links-${{ github.run_id }}-${{ github.run_attempt }}

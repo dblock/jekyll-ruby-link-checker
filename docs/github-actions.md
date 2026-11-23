@@ -37,15 +37,16 @@ jobs:
       cache-key-prefix: link-checker-               # (default: link-checker-)
       report-artifact: link-checker-report          # name of the report, or 'false' (default: link-checker-report)
       changed-files-only: true                      # pull requests only check the pages they change (default: true)
-      fail-on-dead-links: ${{ github.event_name != 'pull_request' }} # (default: true)
+      fail-on-dead-links: 'new'                     # 'true', 'new', or 'false' (default: 'new' on pull requests, 'true' otherwise)
+      dead-links-file: .cache/link-checker-dead-links.json # relative to the site (default: .cache/link-checker-dead-links.json)
       runs-on: ubuntu-latest                        # a runner label, or a JSON list (default: ubuntu-latest)
 ```
 
 Pull requests only check the pages they change, so a pull request that adds a post checks that post. A pull request that changes a layout, `_config.yml`, the `Gemfile`, or anything else that affects every page, or that deletes or renames a file, checks every page. Pushes and scheduled runs always check every page.
 
-The `fail-on-dead-links` example above fails on dead links everywhere except pull requests, which is useful while the site still has dead links of its own.
+By default, pull requests only fail on new dead links, so a site with old dead links can still check every pull request, and pushes and scheduled runs fail on every dead link. Runs other than pull requests save their dead links in the cache, and pull requests compare with those of their base branch: a dead link whose URL was already dead there is listed as existing, and doesn't fail the check, and new dead links that may be temporary, such as `HTTP 503` or a timeout, are warnings. Until the default branch has saved its dead links, for example on the first run, pull requests list every dead link without failing. Set `fail-on-dead-links: 'true'` to fail pull requests on every dead link, or `'false'` to never fail.
 
-Inputs of reusable workflows must match their type, so quote `'false'` for `report-artifact`, which takes a name.
+Inputs of reusable workflows must match their type, so quote `'true'`, `'false'`, and `'new'` for `fail-on-dead-links`, and `'false'` for `report-artifact`, which take text.
 
 ## Using the Action
 
@@ -71,11 +72,9 @@ jobs:
         with:
           fetch-depth: 2
       - uses: dblock/jekyll-ruby-link-checker@v0.1.0
-        with:
-          fail-on-dead-links: ${{ github.event_name != 'pull_request' }}
 ```
 
-The action takes text inputs, so `fail-on-dead-links` and `changed-files-only` are `'true'` or `'false'`, or an expression. `publish-report.yml` publishes the report of a workflow named Check Links, so keep that name, as above, to use it.
+The action takes text inputs, so `changed-files-only` is `'true'` or `'false'`, and `fail-on-dead-links` is `'true'`, `'new'`, or `'false'`, or an expression. `publish-report.yml` publishes the report of a workflow named Check Links, so keep that name, as above, to use it.
 
 ## Publishing Results
 

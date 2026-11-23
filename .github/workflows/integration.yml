@@ -34,7 +34,7 @@ jobs:
       setup-command: printf '\n[Missing](/missing/)\n' >> index.md
       cache-key-prefix: integration-link-checker-
       report-artifact: 'false'
-      fail-on-dead-links: false
+      fail-on-dead-links: 'false'
       changed-files-only: false
 
   # Publishes the report of this run: on a pull request, the fixture has no dead links and no comment exists, so

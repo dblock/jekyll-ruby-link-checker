@@ -16,7 +16,7 @@ A Jekyll plugin that checks the links, images, and other references of your site
 - Reports links blocked by bot protection, such as Cloudflare challenges, as unverified, rather than as dead.
 - Lets you choose what's checked, find references in tags of your own, exclude sites, URLs, and paths, and list some kinds as warnings rather than fail the build.
 - Writes a Markdown report that suggests exclusions for links whose results change from one run to the next.
-- In pull requests, only checks the pages they change, and comments with the dead links; on your default branch, keeps an issue of dead links up to date.
+- In pull requests, only checks the pages they change, only fails on dead links that aren't already dead on your default branch, and comments with the dead links; on your default branch, keeps an issue of dead links up to date.
 
 ## Installation
 

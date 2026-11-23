@@ -22,9 +22,12 @@ RSpec.describe 'action' do # rubocop:disable RSpec/DescribeClass
     expect(action_steps.drop(1)).to eq(workflow_steps)
   end
 
-  it 'computes the cache path like the check-links workflow' do
+  it 'computes the cache and dead links paths, and when to fail, like the check-links workflow, and exports them' do
     set_up = action.dig('runs', 'steps').first
-    expect(set_up.dig('env', 'CACHE_PATH')).to eq(workflow.dig('jobs', 'check', 'env', 'CACHE_PATH'))
+    %w[CACHE_PATH DEAD_LINKS_PATH FAIL_ON].each do |name|
+      expect(set_up.dig('env', name)).to eq(workflow.dig('jobs', 'check', 'env', name))
+      expect(set_up['run']).to include(%(echo "#{name}=$#{name}"))
+    end
   end
 
   it 'has the inputs of the check-links workflow, but the runner, and their defaults' do

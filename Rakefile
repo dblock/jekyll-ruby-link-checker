@@ -35,3 +35,8 @@ RSpec::Core::RakeTask.new(:spec)
 RuboCop::RakeTask.new
 
 task default: %i[spec rubocop]
+
+desc 'Time the plugin on a generated site, or on SITE, without checking other sites'
+task :benchmark do
+  ruby 'benchmark/benchmark.rb'
+end

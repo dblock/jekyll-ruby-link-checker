@@ -16,6 +16,8 @@ bundle exec rake build
 
 RuboCop also checks the documentation and YAML files: prose and title-case headings with `rubocop-prose`, Ruby examples in Markdown with `rubocop-md`, spelling in comments and documentation with `rubocop-spellcheck`, and YAML with `rubocop-yaml`. Keep each paragraph on one source line. Fix spelling mistakes; add only reviewed project words to `.spellcheck.txt`. Keep YAML workflow, job, and step names in Title Case.
 
+`bundle exec rake benchmark` builds a generated site of 1,000 pages without and with the plugin, and prints how long each build took, and how long the plugin spent collecting and checking references. It never checks other sites. `PAGES` changes the number of pages, `RUNS` the number of runs, of which it prints the fastest, and `SITE` points it at an existing site instead, such as `SITE=../my-site bundle exec rake benchmark`. Run it before and after a change that could make the plugin slower or faster, and include both results in the PR.
+
 Danger checks the changelog in PR CI through the reusable [danger-pr-comment](https://github.com/danger/danger-pr-comment) workflows; you do not run it locally.
 
 ## Tests

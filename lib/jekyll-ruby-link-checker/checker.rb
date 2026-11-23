@@ -43,6 +43,7 @@ module Jekyll
       def collect(page)
         return unless checked?(page)
 
+        @report.page(page.relative_path, title: page.data['title'], url: page_url(page))
         hrefs(page).each do |href|
           next check_anchor(page, href) if href.start_with?('#')
 
@@ -63,7 +64,7 @@ module Jekyll
       def new_report
         Report.new(verbose: @config.verbose?, file: @config.report_file(@site.source),
                    fail_on_dead_links: @config.fail_on_dead_links?, changed_pages: @only&.size,
-                   permanent_redirects: @config.permanent_redirects?)
+                   permanent_redirects: @config.permanent_redirects?).tap { |report| report.site_url = site_url }
       end
 
       # Pages that opt out with `link_checker: false`, outputs other than HTML, and, with LINK_CHECKER_CHANGED_FILES,
@@ -77,6 +78,14 @@ module Jekyll
         page.content.to_s.scan(HREF).map { |_, href| CGI.unescapeHTML(href.strip) }.reject do |href|
           href.empty? || href == '#'
         end
+      end
+
+      def site_url
+        @site.config['url'].to_s.empty? ? nil : @site.config['url']
+      end
+
+      def page_url(page)
+        "#{site_url}#{@site.baseurl}#{page.url}" if site_url
       end
 
       def check_anchor(page, href)

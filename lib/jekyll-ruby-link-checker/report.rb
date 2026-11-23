@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require_relative 'report/formatting'
+require_relative 'report/markdown'
 
 module Jekyll
   module RubyLinkChecker
@@ -11,6 +12,7 @@ module Jekyll
     # Counts checked links and collects dead ones with the pages that link to them.
     class Report
       include Formatting
+      include Markdown
 
       attr_reader :counts, :failures, :unverified, :moved
 
@@ -27,6 +29,17 @@ module Jekyll
         @failures = {}
         @unverified = {}
         @moved = {}
+        @pages = {}
+      end
+
+      # With the site's URL, the report links to the site's pages and its dead links.
+      def site_url=(url)
+        @site_url = url&.delete_suffix('/')
+      end
+
+      # Remembers the title and URL of a page, by its source path, so the report can link to it.
+      def page(path, title: nil, url: nil)
+        @pages[path] = { title: title, url: url }
       end
 
       def count(kind)

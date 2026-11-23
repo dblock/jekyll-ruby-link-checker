@@ -230,11 +230,51 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
 
       Checked 1 internal and 1 external links (0 cached), skipped 0.
 
-      | Link | Reason | Linked From |
-      | --- | --- | --- |
-      | /missing/ | page not found | index.md |
-      | https://dead.example.org/a\\|b | Invalid URL | index.md |
+      ### 2 Dead Links
+
+      - [/missing/](<https://www.example.com/missing/>) (page not found)
+        - [index.md](<https://www.example.com/>)
+      - [dead.example.org/a\\|b](<https://dead.example.org/a|b>) (Invalid URL)
+        - [index.md](<https://www.example.com/>)
     MARKDOWN
+  end
+
+  it 'lists pages by title, collapses long lists, and shortens long links in the report' do
+    report = File.join(dir, 'links.md')
+    long = "https://dead.example.org/#{'x' * 80}"
+    stub_url(long, 404)
+    files = {
+      'index.md' => page("[A](#{long})", 'title' => 'Home'),
+      'b.md' => page("[A](#{long})", 'title' => 'Beta *post*'),
+      'c.md' => page("[A](#{long})", 'title' => 'Gamma'),
+      'd.md' => page("[A](#{long})", 'title' => 'Delta'),
+      'e.md' => page("[A](#{long})")
+    }
+
+    expect { build(files, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report }) }
+      .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+    expect(File.read(report)).to end_with(<<~MARKDOWN)
+      - [dead.example.org/#{'x' * 42}…](<#{long}>) (HTTP 404)
+        - [Beta \\*post\\*](<https://www.example.com/b.html>)
+        - [Delta](<https://www.example.com/d.html>)
+        - [e.md](<https://www.example.com/e.html>)
+        - <details><summary>2 more pages</summary>
+
+          - [Gamma](<https://www.example.com/c.html>)
+          - [Home](<https://www.example.com/>)
+
+          </details>
+    MARKDOWN
+  end
+
+  it 'lists pages and site paths without links when the site has no URL' do
+    report = File.join(dir, 'links.md')
+
+    expect do
+      build({ 'index.md' => page('[Missing](/missing/)', 'title' => 'Home') },
+            config: { 'url' => nil }, env: { 'LINK_CHECKER' => '1', 'LINK_CHECKER_REPORT' => report })
+    end.to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+    expect(File.read(report)).to end_with("- /missing/ (page not found)\n  - Home\n")
   end
 
   it 'reports dead links without failing the build when LINK_CHECKER_FAIL is off' do
@@ -310,15 +350,16 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
 
         No dead links.
 
-        ## Unverified Links
+        ### 3 Unverified Links
 
         Bot protection blocked these checks, so these links may work. Check them in a browser.
 
-        | Link | Reason | Linked From |
-        | --- | --- | --- |
-        | https://challenge.example.org/ | Cloudflare challenge (HTTP 503) | index.md |
-        | https://linkedin.example.org/ | HTTP 999 | index.md |
-        | https://walled.example.org/ | HTTP 403 | index.md |
+        - [challenge.example.org/](<https://challenge.example.org/>) (Cloudflare challenge (HTTP 503))
+          - [index.md](<https://www.example.com/>)
+        - [linkedin.example.org/](<https://linkedin.example.org/>) (HTTP 999)
+          - [index.md](<https://www.example.com/>)
+        - [walled.example.org/](<https://walled.example.org/>) (HTTP 403)
+          - [index.md](<https://www.example.com/>)
       MARKDOWN
     end
   end
@@ -380,13 +421,12 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
 
         No dead links.
 
-        ## Moved Permanently
+        ### 1 Link Moved Permanently
 
         These links work, but redirect permanently. Update them to link to where they moved.
 
-        | Link | Moved To | Linked From |
-        | --- | --- | --- |
-        | https://moved.example.org/ | https://new.example.org/ | index.md |
+        - [moved.example.org/](<https://moved.example.org/>) moved to [new.example.org/](<https://new.example.org/>)
+          - [index.md](<https://www.example.com/>)
       MARKDOWN
     end
 

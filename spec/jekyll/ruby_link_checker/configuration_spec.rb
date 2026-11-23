@@ -72,6 +72,20 @@ RSpec.describe Jekyll::RubyLinkChecker::Configuration do
     end
   end
 
+  it 'fails on every dead link, on none with LINK_CHECKER_FAIL=0, and on new ones with LINK_CHECKER_FAIL=new' do
+    { nil => :all, '1' => :all, 'yes' => :all, '0' => :none, 'Off' => :none, 'new' => :new, ' NEW ' => :new }
+      .each do |value, fail_on|
+        with_env('LINK_CHECKER_FAIL' => value) { expect(config(nil).fail_on).to eq(fail_on) }
+      end
+  end
+
+  it 'reads the baseline and dead links files relative to the site source' do
+    with_env('LINK_CHECKER_BASELINE' => 'base.json', 'LINK_CHECKER_DEAD_LINKS' => ' ') do
+      expect(config(nil).baseline_file('/site')).to eq('/site/base.json')
+      expect(config(nil).dead_links_file('/site')).to be_nil
+    end
+  end
+
   it 'reads durations' do
     expect(Jekyll::RubyLinkChecker::Values.duration(90, 'ttl')).to eq(90)
     expect(Jekyll::RubyLinkChecker::Values.duration('45', 'ttl')).to eq(45)

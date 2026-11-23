@@ -4,6 +4,8 @@ module Jekyll
   module RubyLinkChecker
     # Settings from `link_checker` in `_config.yml`, validated when the build starts.
     class Configuration
+      include Environment
+
       # Reuses successful external checks for `ttl`, and unverified ones for `blocked_ttl`, from a cache `file`,
       # relative to the site source, and with `prune`, removes entries of links that a full check no longer checks.
       Cache = Data.define(:file, :ttl, :blocked_ttl, :prune) do
@@ -78,24 +80,6 @@ module Jekyll
         options[:blocked_ttl] = @cache.blocked_ttl if @cache.blocked_ttl
         options[:prune] = true if @cache.prune && full
         options
-      end
-
-      # LINK_CHECKER_REPORT names a file for a Markdown report, for example in a CI workflow.
-      def report_file(source)
-        file = ENV.fetch('LINK_CHECKER_REPORT', '').strip
-        file.empty? ? nil : File.expand_path(file, source)
-      end
-
-      # LINK_CHECKER_CHANGED_FILES names a file that lists changed files, one per line, relative to the site source,
-      # to only check the pages that changed, for example in a pull request.
-      def changed_files(source)
-        file = ENV.fetch('LINK_CHECKER_CHANGED_FILES', '').strip
-        file.empty? ? nil : File.expand_path(file, source)
-      end
-
-      # LINK_CHECKER_FAIL=0 reports dead links without failing the build, for example on pull requests.
-      def fail_on_dead_links?
-        !%w[0 false no off].include?(ENV.fetch('LINK_CHECKER_FAIL', '').strip.downcase)
       end
 
       private

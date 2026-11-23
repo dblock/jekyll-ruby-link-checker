@@ -56,6 +56,12 @@ With `cache.prune`, entries the build didn't use are removed, but only when the 
 
 The workflow lists changed files with `git diff HEAD^1 HEAD`. On a pull request, `actions/checkout` checks out a merge commit whose first parent is the base branch, so two commits of history are enough. Deleted and renamed files check every page, because other pages may link to them.
 
+## Baseline
+
+Sites with old dead links would otherwise fail every pull request, or stop failing pull requests at all. `LINK_CHECKER_DEAD_LINKS` writes the dead links of a build, by URL, with their reason and pages, to a JSON file, and `LINK_CHECKER_BASELINE` reads one back. The comparison lives in the plugin, in `Report::Comparison`, so the log, the report, and the build agree on what fails, and it works outside GitHub Actions.
+
+A dead link already existed when its URL is in the baseline, whatever page links to it, so renaming a post doesn't make its old dead links new. A link of the baseline is fixed when it isn't dead in this build, and every page that linked to it was checked, so a check of only changed pages doesn't claim fixes it didn't see. With `LINK_CHECKER_FAIL=new`, new dead links that failed in a way that may be temporary, the same ones that Suggested Exclusions picks, are warnings rather than failures, because ruby-link-checker already retried them. Without a baseline, nothing can be told apart, so no dead link fails the build: an evicted cache shouldn't block a pull request. Without `LINK_CHECKER_FAIL=new`, a baseline only splits the report, and every dead link still fails the build.
+
 ## Workflows
 
 `check-links.yml` restores the newest cache, builds the site, and saves the cache, even when the build fails on dead links, because ruby-link-checker writes the cache as it goes. GitHub caches can't be overwritten, so each run saves a new key, and the next run restores the newest one by prefix. GitHub also matches caches by path, so a site at the repository root caches the plain `cache-file`, the same path a hand-written workflow would use.

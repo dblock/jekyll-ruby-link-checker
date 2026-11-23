@@ -137,7 +137,12 @@ These change how a build checks links, mostly in CI:
 LINK_CHECKER_CACHE=path/to/cache.json # use this cache file instead of cache.file
 LINK_CHECKER_REPORT=report.md         # also write a report in Markdown
 LINK_CHECKER_FAIL=0                   # warn about dead links instead of failing the build
+LINK_CHECKER_FAIL=new                 # only fail on dead links that aren't in the baseline
+LINK_CHECKER_BASELINE=base.json       # the dead links of an earlier build, such as of the default branch
+LINK_CHECKER_DEAD_LINKS=dead.json     # write the dead links of this build, to use as a baseline later
 LINK_CHECKER_CHANGED_FILES=files.txt  # only check the pages listed in this file, one per line
 ```
 
 With `LINK_CHECKER_CHANGED_FILES`, a change to a layout, an include, or anything else that isn't a page or an image checks every page.
+
+A baseline tells new dead links from existing ones: a dead link whose URL is in the baseline already existed, and a link of the baseline that the checked pages no longer link to as dead is fixed. With `LINK_CHECKER_FAIL=new`, only new dead links fail the build, and new ones that failed in a way that may be temporary, such as `HTTP 503` or a timeout, are warnings. Without a baseline, for example on the first run, no dead link fails the build, with a warning. A baseline that can't be read is ignored, with a warning.

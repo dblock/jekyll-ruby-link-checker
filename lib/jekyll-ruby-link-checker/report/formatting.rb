@@ -11,7 +11,13 @@ module Jekyll
         end
 
         def message
-          "Found #{plural(@failures.size, 'dead link')}:\n#{list(@failures)}"
+          noun = @baseline && @fail_on == :new ? 'new dead link' : 'dead link'
+          "Found #{plural(failing.size, noun)}:\n#{list(failing)}"
+        end
+
+        def unclassified_message
+          "There's no baseline to tell new dead links from existing ones, so " \
+            "#{plural(@unclassified.size, 'dead link')} don't fail the build:\n#{list(@unclassified)}"
         end
 
         def warnings_message
@@ -39,7 +45,14 @@ module Jekyll
         end
 
         def notes
-          "#{warnings_summary}#{unverified_summary}#{moved_summary}"
+          "#{comparison_summary}#{warnings_summary}#{unverified_summary}#{moved_summary}"
+        end
+
+        # How many dead links already existed, and how many were fixed, compared with the baseline.
+        def comparison_summary
+          return '' unless @baseline
+
+          " #{plural(@existing.size, 'dead link')} already existed, #{plural(@fixed.size, 'link')} fixed."
         end
 
         def warnings_summary

@@ -600,6 +600,75 @@ RSpec.describe Jekyll::RubyLinkChecker::Checker do
     end
   end
 
+  context 'with a baseline' do
+    let(:baseline) { File.join(dir, 'baseline.json') }
+    let(:dead_links) { File.join(dir, 'dead-links.json') }
+    let(:files) do
+      { 'index.html' => page('<a href="/missing-old/">Old</a> <a href="/missing-new/">New</a> ' \
+                             '<a href="https://down.example.org/">Down</a> <a href="/about/">About</a>'),
+        'about.html' => page('About', 'permalink' => '/about/') }
+    end
+
+    before do
+      stub_url('https://down.example.org/', 503)
+      links = { '/missing-old/' => 'index.html', '/about/' => 'index.html', '/elsewhere/' => 'other.md' }
+      Jekyll::RubyLinkChecker::Baseline.write(
+        baseline, links.transform_values { |page| { reason: 'page not found', locations: Set[page] } }
+      )
+      allow(Jekyll.logger).to receive(:warn)
+      allow(Jekyll.logger).to receive(:info)
+    end
+
+    def build_with(env)
+      build(files, env: { 'LINK_CHECKER' => '1' }.merge(env))
+    end
+
+    it 'writes the dead links of the build with LINK_CHECKER_DEAD_LINKS' do
+      expect { build_with('LINK_CHECKER_DEAD_LINKS' => dead_links) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError)
+
+      expect(JSON.parse(File.read(dead_links))).to eq(
+        'version' => 1,
+        'dead_links' => [
+          { 'url' => '/missing-new/', 'reason' => 'page not found', 'locations' => ['index.html'] },
+          { 'url' => '/missing-old/', 'reason' => 'page not found', 'locations' => ['index.html'] },
+          { 'url' => 'https://down.example.org/', 'reason' => 'HTTP 503', 'locations' => ['index.html'] }
+        ]
+      )
+    end
+
+    it 'fails only on new dead links that are not temporary with LINK_CHECKER_FAIL=new' do
+      expect { build_with('LINK_CHECKER_BASELINE' => baseline, 'LINK_CHECKER_FAIL' => 'new') }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError) { |error|
+          expect(error.message).to eq("Found 1 new dead link:\n/missing-new/ (page not found), linked from index.html")
+        }
+      expect(Jekyll.logger).to have_received(:info)
+        .with('LinkChecker:', include('1 dead link already existed, 1 link fixed.'))
+      expect(Jekyll.logger).to have_received(:warn)
+        .with('LinkChecker:', start_with("Found 1 dead link that don't fail the build:\nhttps://down.example.org/"))
+    end
+
+    it 'still fails on every dead link with a baseline but without LINK_CHECKER_FAIL=new' do
+      expect { build_with('LINK_CHECKER_BASELINE' => baseline) }
+        .to raise_error(Jekyll::RubyLinkChecker::DeadLinksError, /\AFound 3 dead links:/)
+    end
+
+    it 'does not fail without a baseline to compare with, and says so' do
+      expect { build_with('LINK_CHECKER_BASELINE' => File.join(dir, 'none.json'), 'LINK_CHECKER_FAIL' => 'new') }
+        .not_to raise_error
+      expect(Jekyll.logger).to have_received(:warn)
+        .with('LinkChecker:', start_with("There's no baseline to tell new dead links from existing ones, so 3 dead"))
+    end
+
+    it 'ignores a baseline that cannot be read, with a warning' do
+      File.write(baseline, '{"version": 2}')
+
+      expect { build_with('LINK_CHECKER_BASELINE' => baseline, 'LINK_CHECKER_FAIL' => 'new') }.not_to raise_error
+      expect(Jekyll.logger).to have_received(:warn)
+        .with('LinkChecker:', "Ignoring the baseline in #{baseline}, which can't be read: expected version 1")
+    end
+  end
+
   context 'with media and iframes' do
     it 'checks videos, their posters, sources, and tracks, audio, and iframes' do
       html = '<video src="/media/missing.mp4" poster="/media/missing.jpg"><source src="/media/missing.webm">' \

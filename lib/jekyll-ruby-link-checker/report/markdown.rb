@@ -18,8 +18,8 @@ module Jekyll
         TEXT_LENGTH = 60
 
         def markdown
-          lines = ["<!-- #{MARKER} #{@failures.size} -->", '', summary, '']
-          lines += @failures.empty? ? ['No dead links.'] : section(@failures, 'Dead Link')
+          lines = ["<!-- #{MARKER} #{failing.size} -->", '', summary, '']
+          lines += failing.empty? ? ['No dead links.'] : section(failing, 'Dead Link')
           lines += other_sections
           lines += ['', GUIDE] unless [@failures, @warnings, @unverified, @moved].all?(&:empty?)
           "#{lines.join("\n")}\n"

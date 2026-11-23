@@ -25,7 +25,8 @@ module SiteHelper
   def build_site(dir, files, link_checker: {}, env: { 'LINK_CHECKER' => '1' }, config: {})
     write_files(File.join(dir, 'source'), files)
     site = Jekyll::Site.new(site_config(dir, link_checker, config))
-    unset = %w[LINK_CHECKER LINK_CHECKER_CACHE LINK_CHECKER_REPORT LINK_CHECKER_FAIL LINK_CHECKER_CHANGED_FILES]
+    unset = %w[LINK_CHECKER LINK_CHECKER_CACHE LINK_CHECKER_REPORT LINK_CHECKER_FAIL LINK_CHECKER_CHANGED_FILES
+               LINK_CHECKER_BASELINE LINK_CHECKER_DEAD_LINKS]
             .to_h { |name| [name, nil] }
     with_env(unset.merge(env)) { site.process }
     site

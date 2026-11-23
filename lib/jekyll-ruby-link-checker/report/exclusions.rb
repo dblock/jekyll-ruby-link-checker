@@ -47,7 +47,7 @@ module Jekyll
         end
 
         def flaky_failures
-          @failures.select { |url, link| url.match?(%r{\Ahttps?://}) && link[:reason].match?(FLAKY) }.to_a
+          (@dead || @failures).select { |url, link| url.match?(%r{\Ahttps?://}) && link[:reason].match?(FLAKY) }.to_a
         end
       end
     end

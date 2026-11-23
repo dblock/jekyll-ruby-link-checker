@@ -76,9 +76,17 @@ module Jekyll
       end
 
       def new_report
-        Report.new(verbose: @config.verbose?, file: @config.report_file(@site.source),
-                   fail_on_dead_links: @config.fail_on_dead_links?, changed_pages: @only&.size,
-                   permanent_redirects: @config.permanent_redirects?).tap { |report| report.site_url = site_url }
+        Report.new(verbose: @config.verbose?, file: @config.report_file(@site.source), fail_on: @config.fail_on,
+                   changed_pages: @only&.size, permanent_redirects: @config.permanent_redirects?).tap do |report|
+          report.site_url = site_url
+          compare(report)
+        end
+      end
+
+      # Dead links are compared with those of an earlier build, and written for a later one, when files are given.
+      def compare(report)
+        report.baseline = Baseline.read(@config.baseline_file(@site.source))
+        report.dead_links_file = @config.dead_links_file(@site.source)
       end
 
       # Pages that opt out with `link_checker: false`, outputs other than HTML, and, with LINK_CHECKER_CHANGED_FILES,

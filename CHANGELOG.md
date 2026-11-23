@@ -11,6 +11,7 @@
 - [#39](https://github.com/dblock/jekyll-ruby-link-checker/pull/39): Add `rake benchmark`, which times the plugin on a generated site, or on an existing one - [@dblock](https://github.com/dblock).
 - [#40](https://github.com/dblock/jekyll-ruby-link-checker/pull/40): Collect references three times faster, and only find anchors in `id` and `name` attributes - [@dblock](https://github.com/dblock).
 - [#41](https://github.com/dblock/jekyll-ruby-link-checker/pull/41): List features in `README.md`, and simplify the documentation - [@dblock](https://github.com/dblock).
+- [#42](https://github.com/dblock/jekyll-ruby-link-checker/pull/42): Only fail on new dead links with `LINK_CHECKER_FAIL=new`, compared with the dead links of an earlier build in `LINK_CHECKER_BASELINE`, which `LINK_CHECKER_DEAD_LINKS` writes - [@dblock](https://github.com/dblock).
 - Your contribution here.
 
 ## 0.1.0 (2026/11/23)

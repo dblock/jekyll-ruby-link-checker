@@ -4,6 +4,7 @@ require 'fileutils'
 require_relative 'report/formatting'
 require_relative 'report/markdown'
 require_relative 'report/exclusions'
+require_relative 'report/comparison'
 
 module Jekyll
   module RubyLinkChecker
@@ -15,16 +16,20 @@ module Jekyll
       include Formatting
       include Markdown
       include Exclusions
+      include Comparison
 
       attr_reader :counts, :failures, :warnings, :unverified, :moved
+      # A `Baseline` to compare dead links with, and a file to write the dead links of this build to, as a baseline.
+      attr_writer :baseline, :dead_links_file
 
-      # Writes a Markdown report to `file`, when set, at the end of the build, and fails the build on dead links
-      # unless `fail_on_dead_links` is false. `changed_pages` counts the pages checked when only changed ones are.
-      # With `permanent_redirects`, working links that moved permanently are reported with their new URL.
-      def initialize(verbose:, file: nil, fail_on_dead_links: true, changed_pages: nil, permanent_redirects: false)
+      # Writes a Markdown report to `file`, when set, at the end of the build, and fails the build on dead links when
+      # `fail_on` is `:all`, only on new ones when it's `:new`, and never when it's `:none`. `changed_pages` counts the
+      # pages checked when only changed ones are. With `permanent_redirects`, working links that moved permanently are
+      # reported with their new URL.
+      def initialize(verbose:, file: nil, fail_on: :all, changed_pages: nil, permanent_redirects: false)
         @verbose = verbose
         @file = file
-        @fail_on_dead_links = fail_on_dead_links
+        @fail_on = fail_on
         @changed_pages = changed_pages
         @permanent_redirects = permanent_redirects
         @counts = Hash.new(0)
@@ -65,17 +70,22 @@ module Jekyll
       end
 
       def finish
+        compare
         Jekyll.logger.info('LinkChecker:', summary)
         write(@file) if @file
+        Baseline.write(@dead_links_file, @dead) if @dead_links_file
         warn_unverified_and_moved
-        return if @failures.empty?
-        return Jekyll.logger.warn('LinkChecker:', message) unless @fail_on_dead_links
+        fail_on_dead_links unless failing.empty?
+      end
+
+      private
+
+      def fail_on_dead_links
+        return Jekyll.logger.warn('LinkChecker:', message) if @fail_on == :none
 
         Jekyll.logger.error('LinkChecker:', message)
         raise DeadLinksError, message
       end
-
-      private
 
       def dead(url, result, reason)
         log(url, result.blocked? ? "#{reason}, unverified" : reason)
@@ -101,9 +111,11 @@ module Jekyll
         add(@moved, url, result.options[:locations], result.result_uri.to_s)
       end
 
-      # Warnings, and unverified and moved links, don't fail the build.
+      # Warnings, dead links without a baseline to compare them with, and unverified and moved links, don't fail the
+      # build.
       def warn_unverified_and_moved
         Jekyll.logger.warn('LinkChecker:', warnings_message) unless @warnings.empty?
+        Jekyll.logger.warn('LinkChecker:', unclassified_message) unless @unclassified.empty?
         Jekyll.logger.warn('LinkChecker:', unverified_message) unless @unverified.empty?
         Jekyll.logger.warn('LinkChecker:', moved_message) unless @moved.empty?
       end

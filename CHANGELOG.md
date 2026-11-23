@@ -2,6 +2,7 @@
 
 ## 0.1.1 (Next)
 
+- [#31](https://github.com/dblock/jekyll-ruby-link-checker/pull/31): Add screenshots of reports from code.dblock.org to the documentation - [@dblock](https://github.com/dblock).
 - Your contribution here.
 
 ## 0.1.0 (2026/11/23)

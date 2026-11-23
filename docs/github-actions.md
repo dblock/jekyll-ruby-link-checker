@@ -6,6 +6,10 @@ Two reusable workflows check links in GitHub Actions. One checks links and only 
 
 [`check-links.yml`](../.github/workflows/check-links.yml) builds your site with link checking on. It keeps the cache between runs, so each run only checks links that it hasn't checked recently. Every run adds a report to its summary and attaches it to the run.
 
+For example, the job summary of a run on [code.dblock.org](https://code.dblock.org), where most links came from the cache:
+
+<img alt="Job summary of a link check" src="images/job-summary.png" width="770" height="419">
+
 ```yaml
 # .github/workflows/check-links.yml
 name: Check Links
@@ -76,6 +80,10 @@ The action takes text inputs, so `fail-on-dead-links` and `changed-files-only` a
 ## Publishing Results
 
 [`publish-report.yml`](../.github/workflows/publish-report.yml) reads the report of a completed check. On a pull request, it comments with the dead links and keeps that comment up to date. On your default branch, it can keep an issue up to date: it opens the issue when there are dead links, updates it, and closes it when they're fixed. It never runs the code it checked, so it can safely comment on pull requests from forks.
+
+The comment, and the issue, show the report, here from a run of code.dblock.org with five dead links, each under the posts that link to it:
+
+<img alt="Report with dead links" src="images/report.png" width="800" height="724">
 
 ```yaml
 # .github/workflows/publish-link-checker-report.yml

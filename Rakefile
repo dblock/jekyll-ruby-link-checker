@@ -7,8 +7,10 @@ require 'ruby-gem-release/workflow/ruby_gem'
 require 'ruby-gem-release/changelog'
 require 'ruby-gem-release/version/references'
 
-# Workflow examples in the docs pin a release with a version tag at the end of the workflow path.
-WORKFLOW_PIN = %r{dblock/jekyll-ruby-link-checker/\.github/workflows/[\w-]+\.yml@v(?<version>\d+\.\d+\.\d+)(?![\w.+-])}
+# Examples in the docs pin a release with a version tag at the end of the action or workflow path.
+WORKFLOW_PIN = %r{
+  dblock/jekyll-ruby-link-checker(?:/\.github/workflows/[\w-]+\.yml)?@v(?<version>\d+\.\d+\.\d+)(?![\w.+-])
+}x
 
 # Releases run through the Release workflow, see RELEASING.md.
 # After a release, the next development version also points those examples at the release.

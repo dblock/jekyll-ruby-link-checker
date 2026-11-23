@@ -43,6 +43,36 @@ The `fail-on-dead-links` example above fails on dead links everywhere except pul
 
 Inputs of reusable workflows must match their type, so quote `'false'` for `report-artifact`, which takes a name.
 
+## Using the Action
+
+The check is also an action, listed on GitHub Marketplace, which you can add as a step to a job of your own, for example to build your site in a matrix or run more steps after it. It takes the same inputs as `check-links.yml`, except `runs-on`, and runs the same steps. Check out with `fetch-depth: 2`, so that pull requests can only check the pages they change.
+
+```yaml
+# .github/workflows/check-links.yml
+name: Check Links
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: dblock/jekyll-ruby-link-checker@v0.1.0
+        with:
+          fail-on-dead-links: ${{ github.event_name != 'pull_request' }}
+```
+
+The action takes text inputs, so `fail-on-dead-links` and `changed-files-only` are `'true'` or `'false'`, or an expression. `publish-report.yml` publishes the report of a workflow named Check Links, so keep that name, as above, to use it.
+
 ## Publishing Results
 
 [`publish-report.yml`](../.github/workflows/publish-report.yml) reads the report of a completed check. On a pull request, it comments with the dead links and keeps that comment up to date. On your default branch, it can keep an issue up to date: it opens the issue when there are dead links, updates it, and closes it when they're fixed. It never runs the code it checked, so it can safely comment on pull requests from forks.

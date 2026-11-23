@@ -1,0 +1,145 @@
+name: Jekyll Ruby Link Checker
+description: >-
+  Check the internal, anchor, and external links of a Jekyll site while it builds, and remember the links that
+  worked.
+author: dblock
+
+branding:
+  icon: link
+  color: red
+
+# Run after actions/checkout. To only check the pages that a pull request changes, check out with `fetch-depth: 2`.
+# The steps match the check job of .github/workflows/check-links.yml; keep them in sync.
+
+inputs:
+  ruby-version:
+    description: Ruby version to install, or `default` to read `.ruby-version` from the site.
+    default: default
+  working-directory:
+    description: Directory of the Jekyll site, relative to the repository root.
+    default: .
+  setup-command:
+    description: Shell command to run in the site directory before installing Ruby, such as installing libraries.
+    default: ''
+  build-command:
+    description: Command that builds the site.
+    default: bundle exec jekyll build
+  cache-file:
+    description: Link checker cache file, relative to the site directory.
+    default: .cache/link-checker.json
+  cache-key-prefix:
+    description: Prefix of the GitHub Actions cache keys that hold the link checker cache.
+    default: link-checker-
+  report-artifact:
+    description: Name of the artifact that holds the Markdown report of each run, or `false` to skip uploading it.
+    default: link-checker-report
+  fail-on-dead-links:
+    description: >-
+      Fail when the check finds dead links; with `false`, dead links are reported, with a warning, and the check
+      passes. A build that fails for another reason still fails.
+    default: 'true'
+  changed-files-only:
+    description: >-
+      On pull requests, only check pages whose source changed, or all pages when a layout, an include, data,
+      configuration, or another file that isn't a page or a static file changed, or a file was deleted or renamed.
+      Other runs always check all pages. Needs a checkout with `fetch-depth: 2`.
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+  # GitHub versions caches by path, so a site at the root uses the bare cache file, as a workflow that restores and
+  # saves `.cache/link-checker.json` does, rather than `./.cache/link-checker.json`, and keeps its existing cache.
+  - name: Set Up
+    shell: bash
+    env:
+      CACHE_PATH: >-
+        ${{ (inputs.working-directory == '.' || inputs.working-directory == '') && inputs.cache-file
+        || format('{0}/{1}', inputs.working-directory, inputs.cache-file) }}
+    run: echo "CACHE_PATH=$CACHE_PATH" >> "$GITHUB_ENV"
+  - name: List Changed Files
+    if: inputs.changed-files-only == 'true' && github.event_name == 'pull_request'
+    shell: bash
+    working-directory: ${{ inputs.working-directory }}
+    run: |
+      set -euo pipefail
+      if ! git rev-parse --verify --quiet 'HEAD^2' > /dev/null; then
+        echo "HEAD isn't a pull request merge commit; checking all pages."
+        exit 0
+      fi
+      # Other pages may link to a deleted or renamed file, so check all pages.
+      if git -c core.quotepath=off diff --name-status --relative 'HEAD^1' HEAD | grep -q '^[DR]'; then
+        echo "Files were deleted or renamed; checking all pages."
+        exit 0
+      fi
+      changed="$RUNNER_TEMP/link-checker-changed-files.txt"
+      git -c core.quotepath=off diff --name-only --relative 'HEAD^1' HEAD > "$changed"
+      echo "Changed files in the site:"
+      cat "$changed"
+      echo "LINK_CHECKER_CHANGED_FILES=$changed" >> "$GITHUB_ENV"
+  - name: Run Setup Command
+    if: inputs.setup-command != ''
+    shell: bash
+    working-directory: ${{ inputs.working-directory }}
+    env:
+      SETUP_COMMAND: ${{ inputs.setup-command }}
+    run: eval "$SETUP_COMMAND"
+  - uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
+    with:
+      ruby-version: ${{ inputs.ruby-version }}
+      working-directory: ${{ inputs.working-directory }}
+      bundler-cache: true
+  - name: Restore Link Checker Cache
+    uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    with:
+      path: ${{ env.CACHE_PATH }}
+      key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+      restore-keys: ${{ inputs.cache-key-prefix }}
+  # For a pull request, the artifact also records its number for publish-report.yml, because
+  # `workflow_run` events from forks don't include it.
+  - name: Record Pull Request
+    if: github.event.pull_request.number != ''
+    shell: bash
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    run: |
+      mkdir -p "$RUNNER_TEMP/link-checker"
+      echo "$PR_NUMBER" > "$RUNNER_TEMP/link-checker/link-checker-pr.txt"
+  - name: Build and Check Links
+    shell: bash
+    working-directory: ${{ inputs.working-directory }}
+    env:
+      LINK_CHECKER_REPORT: ${{ runner.temp }}/link-checker/link-checker-report.md
+      BUILD_COMMAND: ${{ inputs.build-command }}
+      LINK_CHECKER: '1'
+      LINK_CHECKER_FAIL: ${{ inputs.fail-on-dead-links }}
+      LINK_CHECKER_CACHE: ${{ github.workspace }}/${{ inputs.working-directory }}/${{ inputs.cache-file }}
+    run: eval "$BUILD_COMMAND"
+  - name: Write Job Summary
+    if: always()
+    shell: bash
+    env:
+      REPORT: ${{ runner.temp }}/link-checker/link-checker-report.md
+    run: |
+      if [ -f "$REPORT" ]; then
+        cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+        dead=$(sed -n 's/^<!-- jekyll-ruby-link-checker dead links: \([0-9]*\) -->$/\1/p' "$REPORT" | head -n 1)
+        if [ "${dead:-0}" -gt 0 ]; then
+          echo "::warning title=Dead Links::Found $dead dead link(s); see the job summary."
+        fi
+      fi
+  - name: Upload Report
+    if: always() && inputs.report-artifact != 'false' && inputs.report-artifact != ''
+    uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+    with:
+      name: ${{ inputs.report-artifact }}
+      path: ${{ runner.temp }}/link-checker/
+      if-no-files-found: ignore
+  # GitHub caches can't be overwritten, so every run saves a new key and the next run restores the newest.
+  # Save even when dead links fail the build: the cache is written as each check succeeds.
+  - name: Save Link Checker Cache
+    if: always() && hashFiles(env.CACHE_PATH) != ''
+    uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    with:
+      path: ${{ env.CACHE_PATH }}
+      key: ${{ inputs.cache-key-prefix }}${{ github.run_id }}-${{ github.run_attempt }}

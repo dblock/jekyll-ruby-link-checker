@@ -77,7 +77,7 @@ jobs:
       issue: 'true'
 ```
 
-See [GitHub Actions](docs/github-actions.md) for the options of both workflows.
+See [GitHub Actions](docs/github-actions.md) for the options of both workflows, and for the action on GitHub Marketplace, which you can add as a step to a job of your own.
 
 ## Documentation
 

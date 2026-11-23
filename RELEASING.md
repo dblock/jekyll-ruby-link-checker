@@ -26,6 +26,10 @@ gh workflow run release.yml --repo dblock/jekyll-ruby-link-checker -f rubygems-o
 
 For later releases, run the workflow without inputs, or with `-f version=X.Y.Z` to release a different version than the checked-in one.
 
+## GitHub Marketplace
+
+`action.yml` is published on GitHub Marketplace from a GitHub Release. The first time, open `action.yml` on GitHub, click **Draft a release** in the banner, check **Publish this Action to the GitHub Marketplace**, and publish the release; this requires two-factor authentication, and that the repository owner accepted the GitHub Marketplace Developer Agreement. After each release, check that the action's Marketplace listing shows the new version; if it doesn't, edit the release that the Release workflow created, check the same box, and update it.
+
 ## Version Pins in the Documentation
 
 The workflow examples in `README.md` and `docs/` pin a release, such as `check-links.yml@v0.1.0`. The next development version commit, which the Release workflow pushes after the release, updates every such pin to the version it released, with `RubyGemRelease::Version::References` and the `WORKFLOW_PIN` pattern in the `Rakefile`. Write new examples in the same form, `dblock/jekyll-ruby-link-checker/.github/workflows/<name>.yml@vX.Y.Z`, so that releases keep them current.

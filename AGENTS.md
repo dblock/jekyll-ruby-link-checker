@@ -11,6 +11,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, commands, tests, and PR rules
 - Reject unknown configuration options with an error that lists the valid ones.
 - Test against real fixture sites built with Jekyll. Do not make network requests in specs; stub Typhoeus.
 - Keep the reusable workflow saving the cache when the build fails, and keep `spec/fixtures/site` checked by the Integration workflow.
+- Keep the steps of `action.yml` and of the check job of `check-links.yml` the same; `spec/workflows/action_spec.rb` compares them.
 - Keep `check-links.yml` read-only, so it can run on pull requests from forks; anything that writes, such as comments and issues, belongs in `publish-report.yml`, which must never check out or run the checked code and treats the report as data.
 - Aim for full line and branch coverage with meaningful specs.
 - Pin every external action and reusable workflow to a full commit SHA with a trailing version comment.
